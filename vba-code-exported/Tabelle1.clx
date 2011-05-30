@@ -71,13 +71,13 @@ Dim vorhanden As Boolean
 vorhanden = False
 
 Dim WS As Worksheet
-Dim WB As Workbook
+Dim wb As Workbook
 Dim ES As Worksheet
 Dim p As Shape
 Dim sourceP As Shape
 
-Set WB = ThisWorkbook
-Set ES = WB.Worksheets("Einstellungen")
+Set wb = ThisWorkbook
+Set ES = wb.Worksheets("Einstellungen")
 
 If rightLogo = False Then
   name = "logo_links"
@@ -95,11 +95,11 @@ If vorhanden Then
     sourceP.Copy
     Application.EnableEvents = False
     
-    For Each WS In WB.Worksheets
+    For Each WS In wb.Worksheets
       If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
         sourceP.Copy
         FuncSubs.ShapeEntfernen name, WS
-        Application.Goto WS.Range("A1")
+        Application.GoTo WS.Range("A1")
         ActiveSheet.Paste
         Set p = WS.Shapes(name)
         p.Top = WS.Range("A1").Top
@@ -114,12 +114,12 @@ If vorhanden Then
         End If
       End If
     Next WS
-    Application.Goto ES.Range("A1")
+    Application.GoTo ES.Range("A1")
     MsgBox "Das neue Logo '" & name & "' wurde auf allen Blättern gesetzt!"
     Application.EnableEvents = True
 Else
     Application.EnableEvents = False
-    For Each WS In WB.Worksheets
+    For Each WS In wb.Worksheets
       If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
         FuncSubs.ShapeEntfernen name, WS
       End If

@@ -15,7 +15,7 @@ End Sub
 
 Sub Mannschaftswertung_berechnen()
 
-Dim WB As Workbook
+Dim wb As Workbook
 Dim WS As Worksheet
 Dim MS As Worksheet
 Dim Zelle As Range
@@ -27,8 +27,8 @@ Dim fak As String
 Dim aktFa As String
 Dim aktpt As Single
 
-Set WB = ThisWorkbook
-Set MS = WB.Worksheets("Mannschaft")
+Set wb = ThisWorkbook
+Set MS = wb.Worksheets("Mannschaft")
 Set WS = ActiveSheet
 
 
@@ -36,11 +36,11 @@ Set WS = ActiveSheet
 MS.Rows("7:6000").Delete
 
 'Holt Vereine
-    WB.Worksheets("Daten").Activate
+    wb.Worksheets("Daten").Activate
 
-    WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
+    wb.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=wb.Worksheets("Daten").Range( _
         "K1"), Unique:=True
-    WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
+    wb.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (wb.Worksheets("Mannschaft").Range("B6"))
     WS.Activate
 'Ende Vereineholen
 
@@ -76,7 +76,7 @@ For aktz = firstz To lastz
         MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
         'Punktesumme
         MS.Cells(aktz, 3).FormulaR1C1 = "=LARGE(RC[1]:RC[9],1)+LARGE(RC[1]:RC[9],2)+LARGE(RC[1]:RC[9],3)+LARGE(RC[1]:RC[9],4)"
-        For Each WS In WB.Worksheets
+        For Each WS In wb.Worksheets
             ptk = 0
             fak = "-"
             If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Then

@@ -7,8 +7,33 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
+
+''' New in 19d
+Private Sub CB_Sortieren_Klasse_Click()
+  Daten_Sortieren "Klasse"
+End Sub
+''' New in 19d
+Private Sub CB_Sortieren_Lizenz_Click()
+  Daten_Sortieren "Lizenz"
+End Sub
+''' New in 19d
+Private Sub CB_Sortieren_Name_Click()
+  Daten_Sortieren "Name"
+End Sub
+
 Private Sub CSV_Importieren_Click()
    ImportCSV
+   'Anpassen des Buttons
+   Me.CSV_Importieren.Left = Me.Range("L2").Left
+   Me.CSV_Importieren.Top = Me.Range("L2").Top
+   Me.CB_Sortieren_Lizenz.Left = Me.Range("L7").Left
+   Me.CB_Sortieren_Lizenz.Top = Me.Range("L7").Top
+   Me.CB_Sortieren_Klasse.Left = Me.Range("L10").Left
+   Me.CB_Sortieren_Klasse.Top = Me.Range("L10").Top
+   Me.CB_Sortieren_Name.Left = Me.Range("L13").Left
+   Me.CB_Sortieren_Name.Top = Me.Range("L13").Top
+   Me.Fahrer_Starts.Left = Me.Range("L16").Left
+   Me.Fahrer_Starts.Top = Me.Range("L16").Top
 End Sub
 
 
@@ -72,9 +97,30 @@ Sub Daten_Speichern()
 
 End Sub
 
+''' New in 19d
+Private Sub Fahrer_Starts_Click()
+  Dim WS As Worksheet
+  Dim i As Long
+  Dim liz As String
+  Dim DB As Worksheet
+  Set DB = ThisWorkbook.Worksheets("Daten")
+  DB.Range("K:K").Clear
+  For Each WS In ThisWorkbook.Worksheets
+    If (WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
+        For i = 8 To WS.UsedRange.Rows.Count
+          If Len(WS.Cells(i, 7).Value) > 0 Then
+            HZ = HoleZeile(WS.Cells(i, 7).Value, 1, "Daten")
+            If HZ > 0 Then
+              DB.Cells(HZ, 11).Value = DB.Cells(HZ, 11).Value & "|" & WS.name
+            End If
+          End If
+        Next i
+    End If
+ Next WS
+End Sub
 
 Private Sub Worksheet_Activate()
-    .CommandBars("External Data").Visible = False
+    Application.CommandBars("External Data").Visible = False
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
@@ -90,4 +136,29 @@ End Sub
 
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     Range("J1") = Target.Address
+End Sub
+
+''' New in 19d
+Sub Daten_Sortieren(typ As String)
+
+    Dim D As Worksheet
+    Set D = Worksheets("Daten")
+    Dim keyR As Range
+    Dim keyR2 As Range
+
+    If typ = "Lizenz" Then
+        Set keyR = D.Range("A2")
+        Set keyR2 = D.Range("C2")
+    ElseIf typ = "Klasse" Then
+        Set keyR = D.Range("B2")
+        Set keyR2 = D.Range("C2")
+    Else
+        Set keyR = D.Range("C2")
+        Set keyR2 = D.Range("D2")
+    End If
+ 
+    D.Columns("A:K").Sort Key1:=keyR, Order1:=xlAscending, Key2:=keyR2 _
+        , Order2:=xlAscending, Header:=xlGuess, OrderCustom:=1, MatchCase:= _
+        False, Orientation:=xlTopToBottom, DataOption1:=xlSortNormal, DataOption2 _
+        :=xlSortNormal
 End Sub

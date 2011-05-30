@@ -40,6 +40,9 @@ End Sub
 Sub EnableEvents()
   Application.EnableEvents = True
 End Sub
+Sub DisableEvents()
+  Application.EnableEvents = False
+End Sub
 
 Function Komma2Point(Wert) As String
   Wert = "" & Wert

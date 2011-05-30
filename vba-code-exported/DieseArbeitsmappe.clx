@@ -10,6 +10,7 @@ Attribute VB_Exposed = True
 Dim AL_CB As CommandBar
 Dim CB_Arr As Collection
 
+
 Sub Hide_CommandBars()
 
 Dim C As CommandBar
@@ -38,8 +39,8 @@ End Sub
 
 Sub Delete_CommandBar()
 ' AUSWERTUNG LIGHT CommandBAr
-      On Error Resume Next
-      AL_CB.Delete
+On Error Resume Next
+AL_CB.Delete
 
 End Sub
 
@@ -56,10 +57,10 @@ Sub Add_CommandBar()
         
         On Error Resume Next
         ' Menü löschen falls schon vorhanden
-        AL_CB.Controls("Auswertung Light v0.19c - Zugspitzpokal").Delete
+        AL_CB.Controls("Auswertung Light v" & MenuSubs.versionNr() & " - Zugspitzpokal").Delete
         On Error GoTo 0
             With AL_CB.Controls.Add(Type:=msoControlPopup)
-                .Caption = "&Auswertung Light v0.19c - Zugspitzpokal"
+                .Caption = "&Auswertung Light v" & MenuSubs.versionNr() & " - Zugspitzpokal"
                 With .Controls.Add
                     .FaceId = 487
                     .Caption = "&Informationen"
@@ -171,6 +172,39 @@ Sub Add_CommandBar()
                 .OnAction = "FuncSubs.DeleteZeile"
         End With
         
+         On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Trainingszeit hinzufügen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .BeginGroup = True
+            .FaceId = 99
+                .Caption = "&Trainingszeit hinzufügen"
+                .OnAction = "EventSubs.Zeit_Importieren_T"
+        End With
+          
+          On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Wertung 1 hinzufügen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 71
+                .Caption = "Wertung &1 hinzufügen"
+                .OnAction = "EventSubs.Zeit_Importieren_1"
+        End With
+      
+       On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Wertung 2 hinzufügen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 72
+                .Caption = "Wertung &2 hinzufügen"
+                .OnAction = "EventSubs.Zeit_Importieren_2"
+        End With
       
         On Error Resume Next
 '       Menü löschen falls schon vorhanden
@@ -180,8 +214,33 @@ Sub Add_CommandBar()
             .BeginGroup = True 'Trennlinie
             On Error GoTo 0
             .Caption = "&Daten"
+            '''New in 19d
+            With .Controls.Add
+                .BeginGroup = True
+                .FaceId = 656
+                .Caption = "Sortieren &Lizenz"
+                .OnAction = "Tabelle7.CB_Sortieren_Lizenz_Click"
+            End With
+            With .Controls.Add
+                .FaceId = 654
+                .Caption = "Sortieren &Klasse"
+                .OnAction = "Tabelle7.CB_Sortieren_Klasse_Click"
+            End With
+            With .Controls.Add
+                .FaceId = 928
+                .Caption = "Sortieren &Name"
+                .OnAction = "Tabelle7.CB_Sortieren_Name_Click"
+            End With
+            With .Controls.Add
+                .BeginGroup = True
+                .FaceId = 1069
+                .Caption = "&Fahrer Starts"
+                .OnAction = "Tabelle7.Fahrer_Starts_Click"
+            End With
+            ''' End New
 '           erster Menüpunkt
             With .Controls.Add
+                .BeginGroup = True
                 .FaceId = 353
                 .Caption = "&Anzeigen"
                 .OnAction = "MenuSubs.Daten"
@@ -234,17 +293,11 @@ Sub Add_CommandBar()
             On Error GoTo 0
             .Caption = "&Hilfe"
             With .Controls.Add
-                If (Application.EnableEvents) Then
-                    .Caption = "Ereignisssteuerung aktiviert"
-                    .FaceId = 1087
-                    .Enabled = False
-                    .OnAction = "MenuSubs.Nix"
-                Else
-                    .Caption = "Ereignisssteuerung aktivieren"
-                    .FaceId = 463
-                    .Enabled = True
-                    .OnAction = "MenuSubs.ZPOutput_Erstellen_Speichern"
-                End If
+                .Caption = "Ereignisssteuerung aktivieren"
+                .FaceId = 463
+                .Enabled = True
+                .OnAction = "FuncSubs.EnableEvents"
+                '.Visible = Not Application.EnableEvents
             End With
             With .Controls.Add
                     .FaceId = 926
@@ -269,14 +322,21 @@ Reset_CommandBars
 End Sub
 
 Private Sub Workbook_Open()
-Hide_CommandBars
-Add_CommandBar
-Workbook_SheetActivate ActiveSheet
-
-Application.MacroOptions Macro:="DeleteZeile", Description:="", ShortcutKey:="l"
+    Hide_CommandBars
+    Add_CommandBar
+    Workbook_SheetActivate ActiveSheet
+    
+    Application.MacroOptions Macro:="DeleteZeile", Description:="", ShortcutKey:="l"
+    Application.OnKey "^0", "EventSubs.Zeit_Importieren_T"
+    Application.OnKey "^1", "EventSubs.Zeit_Importieren_1"
+    Application.OnKey "^2", "EventSubs.Zeit_Importieren_2"
+    Application.OnKey "^t", "EventSubs.Zeit_Importieren"
 End Sub
 
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
+
+Set AL_CB = Application.CommandBars("ZP Auswertung Light")
+
 
 Select Case Sh.name
     Case "Klasse 1" To "Klasse 5"
@@ -284,16 +344,25 @@ Select Case Sh.name
             AL_CB.Controls("Ergebnis berechnen").Enabled = True
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = True
             AL_CB.Controls("Zeile löschen").Enabled = True
+            AL_CB.Controls("Trainingszeit hinzufügen").Enabled = True
+            AL_CB.Controls("Wertung 1 hinzufügen").Enabled = True
+            AL_CB.Controls("Wertung 2 hinzufügen").Enabled = True
     Case "Mannschaft"
             On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = True
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = False
             AL_CB.Controls("Zeile löschen").Enabled = False
+            AL_CB.Controls("Trainingszeit hinzufügen").Enabled = False
+            AL_CB.Controls("Wertung 1 hinzufügen").Enabled = False
+            AL_CB.Controls("Wertung 2 hinzufügen").Enabled = False
     Case Else
             On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = False
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = False
             AL_CB.Controls("Zeile löschen").Enabled = False
+            AL_CB.Controls("Trainingszeit hinzufügen").Enabled = False
+            AL_CB.Controls("Wertung 1 hinzufügen").Enabled = False
+            AL_CB.Controls("Wertung 2 hinzufügen").Enabled = False
 End Select
 
 End Sub

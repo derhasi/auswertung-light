@@ -21,14 +21,18 @@ Sub Daten()
 Tabelle7.Activate
 End Sub
 Sub Info()
-    MsgBox "Auswertung Light für Excel - Version 0.19c" & Chr(10) & "von Johannes Haseitl - www.derhasi.de - www.zugspitzpokal.de", vbInformation, "Information"
+    MsgBox "Auswertung Light für Excel - Version " & versionNr() & Chr(10) & "von Johannes Haseitl - derhasi.de - www.zugspitzpokal.de", vbInformation, "Information"
 End Sub
 Sub Hilfe()
     Tabelle10.Activate
 End Sub
 
 Sub Shortcuts()
-    MsgBox "Strg + L : Markierte Zeilen Löschen", vbInformation, "Tastenkürzel"
+    MsgBox "Strg + L : Markierte Zeilen Löschen" & Chr(10) _
+    & "Strg + T : Zeit importieren " & Chr(10) _
+    & "Strg + 0 : Zeit in Training importieren" & Chr(10) _
+    & "Strg + 1 : Zeit in Wertung 1 importieren" & Chr(10) _
+    & "Strg + 2 : Zeit in Wertung 2 importieren", vbInformation, "Tastenkürzel"
 End Sub
 
 Sub Einstellungen()
@@ -50,3 +54,8 @@ Sub Save()
 ThisWorkbook.Save
 End Sub
 
+
+'''New in 19d
+Function versionNr() As String
+  versionNr = "0.19d"
+End Function

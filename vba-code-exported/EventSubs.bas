@@ -112,6 +112,10 @@ End Sub
 
 ''' Ergebnisliste berechnene
 Sub CB1_Click(WS As Worksheet)
+    CB_Ergebnisliste_Click WS
+End Sub
+
+Sub CB_Ergebnisliste_Click(WS As Worksheet)
     'Ergebnisliste berechnen
     WS.Range("A8:Y6000").Sort Key1:=WS.Range("H8"), Order1:=xlAscending, Key2:=WS.Range("U8") _
         , Order2:=xlAscending, Key3:=WS.Range("V8"), Order3:=xlAscending, Header:= _
@@ -164,6 +168,9 @@ End Sub
 
 '''Nach Starnummern sortieren
 Sub CB2_Click(WS As Worksheet)
+  CB_Startliste_Click WS
+End Sub
+Sub CB_Startliste_Click(WS As Worksheet)
     WS.Range("A8:Y6000").Sort Key1:=WS.Range("B8"), Order1:=xlAscending, Header:= _
            xlNo, OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
     With WS.Range("B6:B7,G6:G7,K7,I6:K7,M6:O7,Q6:S7,W6:W7,G4").Interior
@@ -196,4 +203,75 @@ Sub Sortieren_nach_Startnummer()
                 
     End Select
 
+End Sub
+
+Sub Zeit_Importieren_T()
+  Zeit_Importieren 0
+End Sub
+
+Sub Zeit_Importieren_1()
+  Zeit_Importieren 1
+End Sub
+
+Sub Zeit_Importieren_2()
+  Zeit_Importieren 2
+End Sub
+
+Sub Zeit_Importieren(Optional t As Integer = -1)
+
+  If Left(ActiveSheet.name, 7) <> "Klasse " Then Exit Sub
+  If Selection.Row < 8 Then Exit Sub
+  
+  Dim sourceFile As String
+  sourceFile = ThisWorkbook.Worksheets("Einstellungen").Range("L18").Value
+  'Kein sourceFile => kein Import
+  If Len(sourceFile) <= 0 Then Exit Sub
+  If Len(ThisWorkbook.Worksheets("Einstellungen").Range("L19")) <= 0 Then Exit Sub
+  If Len(ThisWorkbook.Worksheets("Einstellungen").Range("L20")) <= 0 Then Exit Sub
+  If Len(ThisWorkbook.Worksheets("Einstellungen").Range("L21")) <= 0 Then Exit Sub
+  Dim sourceSheet As String
+  sourceSheet = ThisWorkbook.Worksheets("Einstellungen").Range("L19")
+  Dim rangeCell As String
+  rangeCell = ThisWorkbook.Worksheets("Einstellungen").Range("L20") & ThisWorkbook.Worksheets("Einstellungen").Range("L21")
+
+  Dim SBS As Worksheet
+  On Error GoTo Fehler
+  Set SBS = Workbooks(sourceFile).Worksheets(sourceSheet)
+  
+  Dim val As Currency
+  
+  val = Round(SBS.Range(rangeCell).Value, 2)
+  
+  Dim ZielR As Range
+  
+  Select Case t
+    Case 0
+      Set ZielR = Selection.Parent.Cells(Selection.Row, 11)
+    Case 1
+      Set ZielR = Selection.Parent.Cells(Selection.Row, 15)
+    Case 2
+      Set ZielR = Selection.Parent.Cells(Selection.Row, 19)
+    Case Else
+      If (Selection.Column <= 11) Then
+        Set ZielR = Selection.Parent.Cells(Selection.Row, 11)
+      ElseIf (Selection.Column <= 15) Then
+        Set ZielR = Selection.Parent.Cells(Selection.Row, 15)
+      Else
+        Set ZielR = Selection.Parent.Cells(Selection.Row, 19)
+      End If
+  End Select
+  
+  If ZielR.Value > 0 Then
+    If MsgBox(ZielR.Address & " beinhaltet bereits einen Wert: " & ZielR.Value & Chr(13) & "Soll dieser überschrieben werden?", vbYesNo) <> vbYes Then
+        MsgBox "Wert konnte nicht importiert werden!", vbCritical
+        Exit Sub
+    End If
+  End If
+  ZielR.NumberFormat = "0.00"
+  ZielR.Value = val
+  Exit Sub
+Fehler:
+    If Len(sourceFile) > 0 Then
+        MsgBox "Datei " & sourceFile & "ist nicht geöffnet!", vbCritical, sourceFile
+    End If
 End Sub
