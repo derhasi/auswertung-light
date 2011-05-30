@@ -121,4 +121,3 @@ Function replaceUmlauts(str As String)
   str = Replace(str, "Ã ", "à")
   replaceUmlauts = str
 End Function
-

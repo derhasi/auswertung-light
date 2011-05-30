@@ -51,11 +51,29 @@ Sub Nix()
 End Sub
 
 Sub Save()
-ThisWorkbook.Save
+    ThisWorkbook.Save
 End Sub
 
 
 '''New in 19d
 Function versionNr() As String
-  versionNr = "0.19d"
+  versionNr = "0.20"
 End Function
+
+'''New in 20
+Sub exportUrkunden(Klasse As String)
+
+    Dim ES As Worksheet
+    Dim WS As Worksheet
+    
+    Set ES = ThisWorkbook.Worksheets("Einstellungen")
+    
+    For Each WS In ThisWorkbook.Worksheets
+        If Klasse = "" Or WS.name = Klasse Then
+        
+        End If
+    Next WS
+
+
+End Sub
+

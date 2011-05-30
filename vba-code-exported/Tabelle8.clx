@@ -9,7 +9,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub CommandButton1_Click()
 
-Mannschaftswertung_berechnen
+Mannschaftswertung_berechnen_2010
 
 End Sub
 
@@ -131,6 +131,105 @@ Next aktz
 
 End Sub
 
+' New in 0.20
+Sub Mannschaftswertung_berechnen_2010()
 
+Dim WS As Worksheet
+Dim MS As Worksheet
+Dim Zelle As Range
+Dim aktz As Integer
+Dim firstz As Integer
+Dim Verein As String
+Dim aktpt As Single
+
+Dim fahrer As Integer
+Dim gespunkte As Single
+
+
+Set wb = ThisWorkbook
+Set MS = wb.Worksheets("Mannschaft")
+Set WS = ActiveSheet
+
+
+
+MS.Rows("7:6000").Delete
+
+'Holt Vereine
+wb.Worksheets("Daten").Activate
+
+wb.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=wb.Worksheets("Daten").Range( _
+    "K1"), Unique:=True
+wb.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (wb.Worksheets("Mannschaft").Range("B6"))
+WS.Activate
+'Ende Vereineholen
+
+' Border styles
+With MS.Range("A6:M6").Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:M6").Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:M6").Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:M6").Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+
+firstz = 7
+aktz = 7
+lastz = MS.UsedRange.Rows.Count
+
+For aktz = firstz To lastz
+    Verein = MS.Cells(aktz, 2).Value
+    gespunkte = 0
+    fahrer = 0
+    
+    If Verein <> "" Then
+        'Positionsanzeige
+        MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
+        'Punkteschnitt
+        MS.Cells(aktz, 3).FormulaR1C1 = "=IF(RC[1] > 0, ROUND(RC[2]/RC[1],2), 0)"
+        For Each WS In wb.Worksheets
+            If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Then
+                For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
+                    If Zelle.Value = Verein Then
+                        aktpt = Round(Zelle.Offset(0, 18).Value, 2)
+                        gespunkte = Round(gespunkte, 2) + Round(aktpt, 2)
+                        fahrer = fahrer + 1
+                    End If
+                Next Zelle
+            End If
+        Next WS
+        With MS.Columns("A:M").Rows(aktz).Borders(xlEdgeBottom)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .ColorIndex = xlAutomatic
+        End With
+        MS.Cells(aktz, 4).FormulaR1C1 = fahrer
+        MS.Cells(aktz, 5).FormulaR1C1 = Round(gespunkte, 2)
+    End If
+Next aktz
+
+MS.Range("A7:M6000").Sort Key1:=MS.Range("C7"), Order1:=xlDescending, Header:=xlNo, _
+        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
+        
+'Leere Zeilen ausblenden
+For aktz = firstz To lastz
+    Verein = MS.Cells(aktz, 2).Value
+    If Verein <> "" And MS.Cells(aktz, 3).Value = 0 Then
+        MS.Rows(aktz).Hidden = True
+    End If
+Next aktz
+End Sub
 
 
