@@ -1,0 +1,13 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "Tabelle7"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+Private Sub Worksheet_Change(ByVal Target As Range)
+ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
+        "=Daten!R2C1:R65536C1"
+End Sub
