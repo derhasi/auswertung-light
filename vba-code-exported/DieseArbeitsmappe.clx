@@ -335,10 +335,17 @@ End Sub
 
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
 
+Switch_Commandbars Sh.Name
+
+End Sub
+
+''' new in v0.21
+Sub Switch_Commandbars(SheetName As String)
+
+On Error Resume Next
 Set AL_CB = Application.CommandBars("ZP Auswertung Light")
 
-
-Select Case Sh.Name
+Select Case SheetName
     Case "Klasse 1" To "Klasse 5"
            On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = True

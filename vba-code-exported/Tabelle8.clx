@@ -9,13 +9,13 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub CommandButton1_Click()
 
-Mannschaftswertung_berechnen_2010
+Mannschaftswertung_berechnen_2011
 
 End Sub
 
-Sub Mannschaftswertung_berechnen()
+Sub Mannschaftswertung_berechnen_2009()
 
-Dim wb As Workbook
+Dim WB As Workbook
 Dim WS As Worksheet
 Dim MS As Worksheet
 Dim Zelle As Range
@@ -27,8 +27,8 @@ Dim fak As String
 Dim aktFa As String
 Dim aktpt As Single
 
-Set wb = ThisWorkbook
-Set MS = wb.Worksheets("Mannschaft")
+Set WB = ThisWorkbook
+Set MS = WB.Worksheets("Mannschaft")
 Set WS = ActiveSheet
 
 
@@ -36,11 +36,11 @@ Set WS = ActiveSheet
 MS.Rows("7:6000").Delete
 
 'Holt Vereine
-    wb.Worksheets("Daten").Activate
+    WB.Worksheets("Daten").Activate
 
-    wb.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=wb.Worksheets("Daten").Range( _
+    WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
         "K1"), Unique:=True
-    wb.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (wb.Worksheets("Mannschaft").Range("B6"))
+    WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
     WS.Activate
 'Ende Vereineholen
 
@@ -76,7 +76,7 @@ For aktz = firstz To lastz
         MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
         'Punktesumme
         MS.Cells(aktz, 3).FormulaR1C1 = "=LARGE(RC[1]:RC[9],1)+LARGE(RC[1]:RC[9],2)+LARGE(RC[1]:RC[9],3)+LARGE(RC[1]:RC[9],4)"
-        For Each WS In wb.Worksheets
+        For Each WS In WB.Worksheets
             ptk = 0
             fak = "-"
             If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
@@ -146,8 +146,8 @@ Dim fahrer As Integer
 Dim gespunkte As Single
 
 
-Set wb = ThisWorkbook
-Set MS = wb.Worksheets("Mannschaft")
+Set WB = ThisWorkbook
+Set MS = WB.Worksheets("Mannschaft")
 Set WS = ActiveSheet
 
 
@@ -155,11 +155,11 @@ Set WS = ActiveSheet
 MS.Rows("7:6000").Delete
 
 'Holt Vereine
-wb.Worksheets("Daten").Activate
+WB.Worksheets("Daten").Activate
 
-wb.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=wb.Worksheets("Daten").Range( _
+WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
     "K1"), Unique:=True
-wb.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (wb.Worksheets("Mannschaft").Range("B6"))
+WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
 WS.Activate
 'Ende Vereineholen
 
@@ -199,7 +199,7 @@ For aktz = firstz To lastz
         MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
         'Punkteschnitt
         MS.Cells(aktz, 3).FormulaR1C1 = "=IF(RC[1] > 0, ROUND(RC[2]/RC[1],2), 0)"
-        For Each WS In wb.Worksheets
+        For Each WS In WB.Worksheets
             If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
                 For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
                     If Zelle.Value = Verein Then
@@ -231,5 +231,328 @@ For aktz = firstz To lastz
     End If
 Next aktz
 End Sub
+
+
+Sub Mannschaftswertung_berechnen_2008()
+
+Dim WB As Workbook
+Dim WS As Worksheet
+Dim MS As Worksheet
+Dim Zelle As Range
+Dim aktz As Integer
+Dim firstz As Integer
+Dim Verein As String
+Dim pt1 As Single
+Dim pt2 As Single
+Dim pt3 As Single
+Dim pt4 As Single
+Dim fa1 As String
+Dim fa2 As String
+Dim fa3 As String
+Dim fa4 As String
+Dim aktFa As String
+Dim aktpt As Single
+
+Set WB = ThisWorkbook
+Set MS = WB.Worksheets("Mannschaft")
+Set WS = ActiveSheet
+
+
+
+MS.Rows("7:6000").Delete
+
+'Holt Vereine
+    WB.Worksheets("Daten").Activate
+
+    WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
+        "K1"), Unique:=True
+    WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
+    WS.Activate
+'Ende Vereineholen
+
+With MS.Range("A6:K6").Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:K6").Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:K6").Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:K6").Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+
+firstz = 7
+aktz = 7
+lastz = MS.UsedRange.Rows.Count
+
+For aktz = firstz To lastz
+    Verein = MS.Cells(aktz, 2).Value
+    If Verein <> "" Then
+        MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
+        MS.Cells(aktz, 3).FormulaR1C1 = "=RC[1]+RC[2]+RC[3]+RC[4]"
+        pt1 = 0
+        pt2 = 0
+        pt3 = 0
+        pt4 = 0
+        fa1 = ""
+        fa2 = ""
+        fa3 = ""
+        fa4 = ""
+        For Each WS In WB.Worksheets
+            If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
+            For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
+                If Zelle.Value = Verein Then
+                    aktpt = Zelle.offset(0, 18).Value
+                    aktFa = Zelle.offset(0, -2).Value
+                
+                    If aktpt >= pt1 Then
+                        pt4 = pt3
+                        pt3 = pt2
+                        pt2 = pt1
+                        pt1 = aktpt
+                        fa4 = fa3
+                        fa3 = fa2
+                        fa2 = fa1
+                        fa1 = aktFa
+                    ElseIf aktpt >= pt2 Then
+                        pt4 = pt3
+                        pt3 = pt2
+                        pt2 = aktpt
+                        fa4 = fa3
+                        fa3 = fa2
+                        fa2 = aktFa
+                   ElseIf aktpt >= pt3 Then
+                        pt4 = pt3
+                        pt3 = aktpt
+                        fa4 = fa3
+                        fa3 = aktFa
+                    ElseIf aktpt >= pt4 Then
+                        If pt4 = aktpt Then
+                            fa4 = fa4 & " & " & aktFa
+                        Else
+                            fa4 = aktFa
+                        End If
+                        pt4 = aktpt
+                    End If
+                End If
+            Next Zelle
+            End If
+        Next WS
+        MS.Cells(aktz, 4).Value = Application.WorksheetFunction.Round(pt1, 2)
+        MS.Cells(aktz, 5).Value = Application.WorksheetFunction.Round(pt2, 2)
+        MS.Cells(aktz, 6).Value = Application.WorksheetFunction.Round(pt3, 2)
+        MS.Cells(aktz, 7).Value = Application.WorksheetFunction.Round(pt4, 2)
+        MS.Cells(aktz, 8).Value = fa1
+        MS.Cells(aktz, 9).Value = fa2
+        MS.Cells(aktz, 10).Value = fa3
+        MS.Cells(aktz, 11).Value = fa4
+        With MS.Columns("A:K").Rows(aktz).Borders(xlEdgeBottom)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .ColorIndex = xlAutomatic
+        End With
+        
+    End If
+Next aktz
+
+MS.Range("A7:K6000").Sort Key1:=MS.Range("C7"), Order1:=xlDescending, Header:=xlNo, _
+        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
+
+End Sub
+
+
+Sub Mannschaftswertung_berechnen_2011()
+
+Dim WB As Workbook
+Dim WS As Worksheet
+Dim MS As Worksheet
+Dim Zelle As Range
+Dim aktz As Integer
+Dim firstz As Integer
+Dim Verein As String
+Dim pt1 As Single
+Dim pt2 As Single
+Dim pt3 As Single
+Dim pt4 As Single
+Dim pt5 As Single
+Dim pt6 As Single
+Dim fa1 As String
+Dim fa2 As String
+Dim fa3 As String
+Dim fa4 As String
+Dim fa5 As String
+Dim fa6 As String
+Dim aktFa As String
+Dim aktpt As Single
+
+Set WB = ThisWorkbook
+Set MS = WB.Worksheets("Mannschaft")
+Set WS = ActiveSheet
+
+
+
+MS.Rows("7:6000").Delete
+
+'Holt Vereine
+    WB.Worksheets("Daten").Activate
+
+    WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
+        "K1"), Unique:=True
+    WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
+    WS.Activate
+'Ende Vereineholen
+
+With MS.Range("A6:O6").Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:O6").Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:O6").Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+With MS.Range("A6:O6").Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlMedium
+        .ColorIndex = xlAutomatic
+End With
+
+firstz = 7
+aktz = 7
+lastz = MS.UsedRange.Rows.Count
+
+For aktz = firstz To lastz
+    Verein = MS.Cells(aktz, 2).Value
+    If Verein <> "" Then
+        MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
+        MS.Cells(aktz, 3).FormulaR1C1 = "=RC[1]+RC[2]+RC[3]+RC[4]+RC[5]+RC[6]"
+        pt1 = 0
+        pt2 = 0
+        pt3 = 0
+        pt4 = 0
+        pt5 = 0
+        pt6 = 0
+        fa1 = ""
+        fa2 = ""
+        fa3 = ""
+        fa4 = ""
+        fa5 = ""
+        fa6 = ""
+        For Each WS In WB.Worksheets
+            If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
+            For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
+                If Zelle.Value = Verein Then
+                    aktpt = Zelle.offset(0, 18).Value
+                    aktFa = Zelle.offset(0, -2).Value
+                
+                    If aktpt >= pt1 Then
+                        pt6 = pt5
+                        pt5 = pt4
+                        pt4 = pt3
+                        pt3 = pt2
+                        pt2 = pt1
+                        pt1 = aktpt
+                        fa6 = fa5
+                        fa5 = fa4
+                        fa4 = fa3
+                        fa3 = fa2
+                        fa2 = fa1
+                        fa1 = aktFa
+                    ElseIf aktpt >= pt2 Then
+                        pt6 = pt5
+                        pt5 = pt4
+                        pt4 = pt3
+                        pt3 = pt2
+                        pt2 = aktpt
+                        fa6 = fa5
+                        fa5 = fa4
+                        fa4 = fa3
+                        fa3 = fa2
+                        fa2 = aktFa
+                   ElseIf aktpt >= pt3 Then
+                        pt6 = pt5
+                        pt5 = pt4
+                        pt4 = pt3
+                        pt3 = aktpt
+                        fa6 = fa5
+                        fa5 = fa4
+                        fa4 = fa3
+                        fa3 = aktFa
+                    ElseIf aktpt >= pt4 Then
+                        pt6 = pt5
+                        pt5 = pt4
+                        pt4 = aktpt
+                        fa6 = fa5
+                        fa5 = fa4
+                        fa4 = aktFa
+                    ElseIf aktpt >= pt5 Then
+                        pt6 = pt5
+                        pt5 = aktpt
+                        fa6 = fa5
+                        fa5 = aktFa
+                    ElseIf aktpt >= pt6 Then
+                        If pt6 = aktpt Then
+                            fa6 = fa6 & " & " & aktFa
+                        Else
+                            fa6 = aktFa
+                        End If
+                        pt6 = aktpt
+                    End If
+                End If
+            Next Zelle
+            End If
+        Next WS
+        MS.Cells(aktz, 4).Value = Application.WorksheetFunction.Round(pt1, 2)
+        MS.Cells(aktz, 5).Value = Application.WorksheetFunction.Round(pt2, 2)
+        MS.Cells(aktz, 6).Value = Application.WorksheetFunction.Round(pt3, 2)
+        MS.Cells(aktz, 7).Value = Application.WorksheetFunction.Round(pt4, 2)
+        MS.Cells(aktz, 8).Value = Application.WorksheetFunction.Round(pt5, 2)
+        MS.Cells(aktz, 9).Value = Application.WorksheetFunction.Round(pt6, 2)
+        MS.Cells(aktz, 10).Value = fa1
+        MS.Cells(aktz, 11).Value = fa2
+        MS.Cells(aktz, 12).Value = fa3
+        MS.Cells(aktz, 13).Value = fa4
+        MS.Cells(aktz, 14).Value = fa5
+        MS.Cells(aktz, 15).Value = fa6
+        With MS.Columns("A:O").Rows(aktz).Borders(xlEdgeBottom)
+            .LineStyle = xlContinuous
+            .Weight = xlThin
+            .ColorIndex = xlAutomatic
+        End With
+        
+    End If
+Next aktz
+
+MS.Range("A7:O6000").Sort Key1:=MS.Range("C7"), Order1:=xlDescending, Header:=xlNo, _
+        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
+
+'Leere Zeilen ausblenden
+For aktz = firstz To lastz
+    Verein = MS.Cells(aktz, 2).Value
+    If Verein <> "" And MS.Cells(aktz, 3).Value = 0 Then
+        MS.Rows(aktz).Hidden = True
+    End If
+Next aktz
+
+End Sub
+
+
+
 
 

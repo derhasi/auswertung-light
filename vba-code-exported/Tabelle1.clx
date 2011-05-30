@@ -121,13 +121,13 @@ Sub pasteLogo(rightLogo As Boolean)
   vorhanden = False
   
   Dim WS As Worksheet
-  Dim wb As Workbook
+  Dim WB As Workbook
   Dim ES As Worksheet
   Dim p As Shape
   Dim sourceP As Shape
   
-  Set wb = ThisWorkbook
-  Set ES = wb.Worksheets("Einstellungen")
+  Set WB = ThisWorkbook
+  Set ES = WB.Worksheets("Einstellungen")
   
   If rightLogo = False Then
     Name = "logo_links"
@@ -145,7 +145,7 @@ Weiter:
       sourceP.Copy
       Application.EnableEvents = False
       
-      For Each WS In wb.Worksheets
+      For Each WS In WB.Worksheets
         If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
           sourceP.Copy
           FuncSubs.ShapeEntfernen Name, WS
@@ -169,7 +169,7 @@ Weiter:
       Application.EnableEvents = True
   Else
       Application.EnableEvents = False
-      For Each WS In wb.Worksheets
+      For Each WS In WB.Worksheets
         If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
           FuncSubs.ShapeEntfernen Name, WS
         End If

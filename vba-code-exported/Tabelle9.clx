@@ -14,7 +14,7 @@ End Sub
 Sub ZP_Output_Erstellen()
 
 Dim WS As Worksheet
-Dim wb As Workbook
+Dim WB As Workbook
 Dim ZO As Worksheet
 Dim i As Integer
 Dim aktz As Integer
@@ -22,8 +22,8 @@ Dim ZORow As Range
 Dim WSRow As Range
 Dim temp As String
 
-Set wb = ThisWorkbook
-Set ZO = wb.Worksheets("zp_output")
+Set WB = ThisWorkbook
+Set ZO = WB.Worksheets("zp_output")
 Set WS = ActiveSheet
 temp = ZO.Range("A1").Value
 aktz = 1
@@ -31,7 +31,7 @@ ZO.Cells.Clear
 
 
 
-For Each WS In wb.Worksheets
+For Each WS In WB.Worksheets
   If (WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
     For i = 8 To WS.UsedRange.Rows.Count
       Set ZORow = ZO.Cells.Rows(aktz)
