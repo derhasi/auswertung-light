@@ -20,9 +20,20 @@ For Each Zelle In Bereich
         If Zelle.Value <> "" Then
             HZ = HoleZeile(Zelle.Value, 1, "Daten")
             If HZ > 0 Then
-                Zelle.Parent.Cells(Zelle.Row, 3).Value = DB.Cells(HZ, 2).Value
+                 Zelle.Parent.Cells(Zelle.Row, 3).Value = DB.Cells(HZ, 2).Value
+                'Rookie
+                If Year(Worksheets("Einstellungen").Range("D5").Value) = DB.Cells(HZ, 5).Value Then
+                  With Zelle.Parent.Cells(Zelle.Row, 3).Interior
+                    .ColorIndex = 15
+                    .Pattern = xlSolid
+                    .PatternColorIndex = xlAutomatic
+                  End With
+                Else
+                  Zelle.Parent.Cells(Zelle.Row, 3).Interior.ColorIndex = xlNone
+                End If
+                'Rest...
                 Zelle.Parent.Cells(Zelle.Row, 4).Value = DB.Cells(HZ, 3).Value & ", " & DB.Cells(HoleZeile(Zelle.Value, 1, "Daten"), 4).Value
-                Zelle.Parent.Cells(Zelle.Row, 5).Value = DB.Cells(HZ, 5).Value & ", " & Chr(10) & DB.Cells(HoleZeile(Zelle.Value, 1, "Daten"), 6).Value & " " & DB.Cells(HoleZeile(Zelle.Value, 1, "Daten"), 7).Value
+                Zelle.Parent.Cells(Zelle.Row, 5).Value = DB.Cells(HoleZeile(Zelle.Value, 1, "Daten"), 6).Value & " " & DB.Cells(HoleZeile(Zelle.Value, 1, "Daten"), 7).Value
                 Zelle.Parent.Cells(Zelle.Row, 6).Value = DB.Cells(HZ, 8).Value
                 Zelle.Parent.Cells(Zelle.Row, 8).FormulaR1C1 = "=IF(RC23="""",0,RC23)"
                 Zelle.Parent.Cells(Zelle.Row, 8).Font.ColorIndex = 2
