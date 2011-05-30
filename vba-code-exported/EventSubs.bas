@@ -238,9 +238,15 @@ Sub Zeit_Importieren(Optional t As Integer = -1)
   On Error GoTo Fehler
   Set SBS = Workbooks(sourceFile).Worksheets(sourceSheet)
   
-  Dim val As Currency
+  Dim val As Currency  ' Format muss auf zwei Dezimalzeichen gerundet werden
+  Dim format As Integer
   
-  val = Round(SBS.Range(rangeCell).Value, 2)
+  format = ThisWorkbook.Worksheets("Einstellungen").Range("L22")
+  
+ ' val = Round(SBS.Range(rangeCell).Value, 2) -> geändert, Grimm    30.05.2010
+ ' val = Round(SBS.Range(rangeCell).Value * 86400, 2)  -> geändert, Grimm    30.05.2010
+  ' fixed in 20a
+  val = ZeitImportHoleZeit(SBS.Range(rangeCell), format)
   
   Dim ZielR As Range
   
@@ -275,3 +281,19 @@ Fehler:
         MsgBox "Datei " & sourceFile & "ist nicht geöffnet!", vbCritical, sourceFile
     End If
 End Sub
+
+' Holt eine Wert aus einer Zelle, mit einem von Zwei formaten
+' und gibt es als Dezimalzahl zurück
+' New in 20a
+Function ZeitImportHoleZeit(r As Range, format As Integer) As Currency
+    
+    Select Case format
+        ' Dezimal
+        Case 0
+          ZeitImportHoleZeit = Round(r.Value, 2)
+        ' Zeit
+        Case 1
+          ZeitImportHoleZeit = Round(r.Value * 86400, 2)
+    End Select
+
+End Function

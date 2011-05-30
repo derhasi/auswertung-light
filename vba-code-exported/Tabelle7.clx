@@ -50,12 +50,12 @@ Sub ImportCSV()
         readCSV datei, Worksheets("Daten")
         Worksheets("Daten").Range("J:AA").Clear
         '''End Of Changes 19b -> 19c
-        Dim R As Range
+        Dim r As Range
      
-        For Each R In Intersect(Worksheets("Daten").UsedRange, Worksheets("Daten").Range("A:A"))
-            R.NumberFormat = "0"
-            R.FormulaR1C1 = R.Value
-        Next R
+        For Each r In Intersect(Worksheets("Daten").UsedRange, Worksheets("Daten").Range("A:A"))
+            r.NumberFormat = "0"
+            r.FormulaR1C1 = r.Value
+        Next r
        
         Worksheets("Daten").Range("A1:I1").Font.Bold = True
         Worksheets("Daten").Columns("A:A").FormatConditions.Delete
