@@ -67,7 +67,7 @@ Sub ImportCSV()
             .Pattern = xlSolid
         End With
         
-        ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
+        ActiveWorkbook.Names.Add Name:="Lizenz", RefersToR1C1:= _
             "=Daten!R2C1:R65536C1"
             
         Application.CommandBars("External Data").Visible = False
@@ -106,12 +106,12 @@ Private Sub Fahrer_Starts_Click()
   Set DB = ThisWorkbook.Worksheets("Daten")
   DB.Range("K:K").Clear
   For Each WS In ThisWorkbook.Worksheets
-    If (WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
+    If (WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
         For i = 8 To WS.UsedRange.Rows.Count
           If Len(WS.Cells(i, 7).Value) > 0 Then
             HZ = HoleZeile(WS.Cells(i, 7).Value, 1, "Daten")
             If HZ > 0 Then
-              DB.Cells(HZ, 11).Value = DB.Cells(HZ, 11).Value & "|" & WS.name
+              DB.Cells(HZ, 11).Value = DB.Cells(HZ, 11).Value & "|" & WS.Name
             End If
           End If
         Next i
@@ -124,7 +124,7 @@ Private Sub Worksheet_Activate()
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
+    ActiveWorkbook.Names.Add Name:="Lizenz", RefersToR1C1:= _
             "=Daten!R2C1:R65536C1"
     Application.CommandBars("External Data").Visible = False
     

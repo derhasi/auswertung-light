@@ -183,7 +183,7 @@ End Sub
 
 Sub Ergebnis_berechnen()
 
-    Select Case ActiveSheet.name
+    Select Case ActiveSheet.Name
         Case "Klasse 1" To "Klasse 5"
                 Run "CB1_Click", ActiveSheet
         Case "Manschaft"
@@ -196,7 +196,7 @@ End Sub
 
 Sub Sortieren_nach_Startnummer()
 
-    Select Case ActiveSheet.name
+    Select Case ActiveSheet.Name
         Case "Klasse 1" To "Klasse 5"
                 Run "CB2_Click", ActiveSheet
         Case Else
@@ -219,7 +219,7 @@ End Sub
 
 Sub Zeit_Importieren(Optional t As Integer = -1)
 
-  If Left(ActiveSheet.name, 7) <> "Klasse " Then Exit Sub
+  If Left(ActiveSheet.Name, 7) <> "Klasse " Then Exit Sub
   If Selection.Row < 8 Then Exit Sub
   
   Dim sourceFile As String
@@ -245,7 +245,7 @@ Sub Zeit_Importieren(Optional t As Integer = -1)
   
  ' val = Round(SBS.Range(rangeCell).Value, 2) -> geändert, Grimm    30.05.2010
  ' val = Round(SBS.Range(rangeCell).Value * 86400, 2)  -> geändert, Grimm    30.05.2010
-  ' fixed in 20a
+ ' new in 20a
   val = ZeitImportHoleZeit(SBS.Range(rangeCell), format)
   
   Dim ZielR As Range
@@ -284,7 +284,7 @@ End Sub
 
 ' Holt eine Wert aus einer Zelle, mit einem von Zwei formaten
 ' und gibt es als Dezimalzahl zurück
-' New in 20a
+' new in 20a
 Function ZeitImportHoleZeit(r As Range, format As Integer) As Currency
     
     Select Case format

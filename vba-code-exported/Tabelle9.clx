@@ -32,38 +32,38 @@ ZO.Cells.Clear
 
 
 For Each WS In wb.Worksheets
-            If (WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
-                For i = 8 To WS.UsedRange.Rows.Count
-                    Set ZORow = ZO.Cells.Rows(aktz)
-                    Set WSRow = WS.UsedRange.Rows(i)
-                    ZORow.Columns(1).Value = temp
-                    ZORow.Columns(2).Value = WSRow.Columns(7).Value
-                    ZORow.Columns(3).Value = WSRow.Columns(6).Value
-                    ZORow.Columns(4).Value = WSRow.Columns(2).Value
-                    ZORow.Columns(5).Value = Right(Trim(WSRow.Columns(3).Value), 1)
-                    If WSRow.Columns(23).Value <> "" Then
-                        ZORow.Columns(6).Value = 0
-                        Else
-                        ZORow.Columns(6).Value = 1
-                    End If
-                    ZORow.Columns(7).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(9).Value)
-                    ZORow.Columns(8).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(10).Value)
-                    ZORow.Columns(9).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(11).Value, 2))
-                    ZORow.Columns(10).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(13).Value)
-                    ZORow.Columns(11).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(14).Value)
-                    ZORow.Columns(12).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(15).Value, 2))
-                    ZORow.Columns(13).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(17).Value)
-                    ZORow.Columns(14).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(18).Value)
-                    ZORow.Columns(15).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(19).Value, 2))
-                    ZORow.Columns(16).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(21).Value)
-                    ZORow.Columns(17).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(1).Value)
-                    ZORow.Columns(18).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(24).Value)
-                    ZORow.Columns(19).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(25).Value)
-                    ZORow.Columns(20).Value = WSRow.Columns(4).Value
-                    ZORow.Columns(21).Value = "\N"
-                    aktz = aktz + 1
-                Next i
-            End If
+  If (WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
+    For i = 8 To WS.UsedRange.Rows.Count
+      Set ZORow = ZO.Cells.Rows(aktz)
+      Set WSRow = WS.UsedRange.Rows(i)
+      ZORow.Columns(1).Value = temp
+      ZORow.Columns(2).Value = WSRow.Columns(7).Value
+      ZORow.Columns(3).Value = WSRow.Columns(6).Value
+      ZORow.Columns(4).Value = WSRow.Columns(2).Value
+      ZORow.Columns(5).Value = Right(Trim(WSRow.Columns(3).Value), 1)
+      If WSRow.Columns(23).Value <> "" Then
+          ZORow.Columns(6).Value = 0
+          Else
+          ZORow.Columns(6).Value = 1
+      End If
+      ZORow.Columns(7).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(9).Value)
+      ZORow.Columns(8).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(10).Value)
+      ZORow.Columns(9).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(11).Value, 2))
+      ZORow.Columns(10).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(13).Value)
+      ZORow.Columns(11).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(14).Value)
+      ZORow.Columns(12).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(15).Value, 2))
+      ZORow.Columns(13).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(17).Value)
+      ZORow.Columns(14).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(18).Value)
+      ZORow.Columns(15).FormulaR1C1 = "'" & Komma2Point(Round(WSRow.Columns(19).Value, 2))
+      ZORow.Columns(16).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(21).Value)
+      ZORow.Columns(17).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(1).Value)
+      ZORow.Columns(18).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(24).Value)
+      ZORow.Columns(19).FormulaR1C1 = "'" & Komma2Point(WSRow.Columns(25).Value)
+      ZORow.Columns(20).Value = WSRow.Columns(4).Value
+      ZORow.Columns(21).Value = "\N"
+      aktz = aktz + 1
+    Next i
+  End If
 Next WS
 
 End Sub

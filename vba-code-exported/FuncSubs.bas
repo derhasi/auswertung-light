@@ -1,5 +1,5 @@
 Attribute VB_Name = "FuncSubs"
-Function HoleZeile(Wert As String, Spalte As Integer, Tabellenblatt As String)
+Function HoleZeile(Wert As String, spalte As Integer, Tabellenblatt As String)
 
 Dim TB As Worksheet
 Dim Zelle As Range
@@ -8,7 +8,7 @@ Set TB = ThisWorkbook.Worksheets(Tabellenblatt)
 
 HoleDaten = Null
 
-For Each Zelle In TB.Columns(Spalte).Rows
+For Each Zelle In TB.Columns(spalte).Rows
     If Zelle.Value = Wert Then
         HoleZeile = Zelle.Row
         Exit Function
@@ -27,7 +27,7 @@ End Function
 Sub DeleteZeile()
 Attribute DeleteZeile.VB_ProcData.VB_Invoke_Func = "l\n14"
 
-WSName = Selection.Parent.name
+WSName = Selection.Parent.Name
 
 If WSName = "Klasse 1" Or WSName = "Klasse 2" Or WSName = "Klasse 3" Or WSName = "Klasse 4" Or WSName = "Klasse 5" Then
     If Selection.Row > 7 Then
@@ -50,11 +50,11 @@ Function Komma2Point(Wert) As String
 End Function
 
 Sub ZPOutput_Raus()
-Dim name As String
+Dim Name As String
     Sheets("zp_output").Select
     Sheets("zp_output").Copy
-    name = InputBox("Dateiname")
-    ActiveWorkbook.SaveAs Filename:=CurDir() & "/" & name & ".csv", FileFormat:=xlCSV, _
+    Name = InputBox("Dateiname")
+    ActiveWorkbook.SaveAs Filename:=CurDir() & "/" & Name & ".csv", FileFormat:=xlCSV, _
         CreateBackup:=False
     ActiveWorkbook.Close
         
@@ -66,13 +66,13 @@ Sub RangeReplace(Bereich As Range, FromT As String, ToT As String)
         :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False
 End Sub
 
-Sub ShapeEntfernen(name As String, WS As Worksheet)
-  Dim s As Shape
-  For Each s In WS.Shapes
-    If s.name = name Then
-      s.Delete
+Sub ShapeEntfernen(Name As String, WS As Worksheet)
+  Dim S As Shape
+  For Each S In WS.Shapes
+    If S.Name = Name Then
+      S.Delete
     End If
-  Next s
+  Next S
 End Sub
 
 '''New in 19c
@@ -81,7 +81,7 @@ Sub readCSV(ByVal datei As String, WS As Worksheet, Optional delimiter As String
    Dim strTxt As String
    Dim myarr() As String
    Dim i As Long
-   Dim s As String
+   Dim S As String
    Dim lngL As Long
    Open datei For Input As #1
    lngL = 1
@@ -89,15 +89,15 @@ Sub readCSV(ByVal datei As String, WS As Worksheet, Optional delimiter As String
       Line Input #1, strTxt
       myarr = Split(strTxt, delimiter)
       For i = LBound(myarr) To UBound(myarr)
-        s = myarr(i)
+        S = myarr(i)
         'remove one left text delimiters
-        If (Left(s, Len(TextDelimiter)) = TextDelimiter) Then
-          s = Mid(s, 1 + Len(TextDelimiter))
+        If (Left(S, Len(TextDelimiter)) = TextDelimiter) Then
+          S = Mid(S, 1 + Len(TextDelimiter))
         End If
-        If (Right(s, Len(TextDelimiter)) = TextDelimiter) Then
-          s = Mid(s, 1, Len(s) - Len(TextDelimiter))
+        If (Right(S, Len(TextDelimiter)) = TextDelimiter) Then
+          S = Mid(S, 1, Len(S) - Len(TextDelimiter))
         End If
-        myarr(i) = replaceUmlauts(s)
+        myarr(i) = replaceUmlauts(S)
       Next i
       WS.Range(WS.Cells(lngL, 1), WS.Cells(lngL, UBound(myarr) + 1)) = myarr
       lngL = lngL + 1

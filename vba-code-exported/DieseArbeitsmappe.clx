@@ -16,7 +16,7 @@ Sub Hide_CommandBars()
 Dim C As CommandBar
 Set CB_Arr = New Collection 'Speicher um vor Ende die Leisten wieder zurückzusetzen
 For Each C In Application.CommandBars
-    If C.Visible Then CB_Arr.Add (C.name)
+    If C.Visible Then CB_Arr.Add (C.Name)
     On Error Resume Next
     C.Visible = False
 Next C
@@ -52,7 +52,7 @@ Sub Add_CommandBar()
 '       Menü löschen falls schon vorhanden
         Application.CommandBars("ZP Auswertung Light").Delete
         
-        Application.CommandBars.Add name:="ZP Auswertung Light", Temporary:=False, Position:=msoBarTop
+        Application.CommandBars.Add Name:="ZP Auswertung Light", Temporary:=False, Position:=msoBarTop
         Set AL_CB = Application.CommandBars("ZP Auswertung Light")
         
         On Error Resume Next
@@ -338,7 +338,7 @@ Private Sub Workbook_SheetActivate(ByVal Sh As Object)
 Set AL_CB = Application.CommandBars("ZP Auswertung Light")
 
 
-Select Case Sh.name
+Select Case Sh.Name
     Case "Klasse 1" To "Klasse 5"
            On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = True

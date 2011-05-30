@@ -7,24 +7,25 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
+
 Sub Bild_laden(rightLogo As Boolean)
 
-Dim name As String
+Dim Name As String
 Dim h As Single
-Dim w As Single
+Dim W As Single
 Dim t As Single
 Dim l As Single
 
 
 h = 65
-w = 65
+W = 65
 
 If rightLogo = False Then
-  name = "logo_links"
+  Name = "logo_links"
   t = Me.Logo1Laden.Top + Me.Logo1Laden.Height + 10
   l = Me.Logo1Laden.Left
 Else
-  name = "logo_rechts"
+  Name = "logo_rechts"
   t = Me.Logo2Laden.Top + Me.Logo2Laden.Height + 10
   l = Me.Logo2Laden.Left
 End If
@@ -38,9 +39,9 @@ datei = Application.GetOpenFilename("Bilder, *.gif; *.jpg; *.png", ButtonText:="
 
 If datei <> False Then
   Application.EnableEvents = False 'False
-  FuncSubs.ShapeEntfernen name, ES
-  Set p = ES.Shapes.AddPicture(datei, msoFalse, msoTrue, l, t, w, h)
-  p.name = name
+  FuncSubs.ShapeEntfernen Name, ES
+  Set p = ES.Shapes.AddPicture(datei, msoFalse, msoTrue, l, t, W, h)
+  p.Name = Name
   Application.EnableEvents = True
 End If
 
@@ -48,6 +49,55 @@ End If
 
 End Sub
 
+' Neu in 0.20b
+' Max Spalten: 256
+' Max Zeilen: 65536
+Private Sub CB_DatenExport_Click()
+  
+  Dim ES As Worksheet
+  Set ES = ThisWorkbook.Worksheets("Einstellungen")
+  
+  Dim temp As Variant ' ergebnis der klassenabfrage
+  Dim WK As Worksheet ' Worksheet der Klasse
+
+  ' Klasse auswählen
+  temp = InputBox("Geben sie die Laufnummer für die importierten Daten an, damit eine korrekte Zuteilung möglich wird!", "Laufnummer für Zuteilung", 0)
+    
+  If IsNumeric(temp) And temp >= 1 And temp <= 5 Then
+      Laufnr = Round(temp, 0)
+      Set WK = ThisWorkbook.Worksheets("Klasse " & temp)
+  Else
+      MsgBox "Falsche Eingabe der Klasse! (muss zwischen 1 und 5 liegen)" & Chr(10) & Chr(10) & "Export wird abgebrochen", vbCritical, "Falsche Eingabe der Klasse"
+      Exit Sub
+  End If
+  
+  ' Ziel Worksheet
+  ' Kein ZielFile => kein Export
+  If Len(ES.Range("D34")) <= 0 Then Exit Sub
+  If Len(ES.Range("D35")) <= 0 Then Exit Sub
+  Dim zielFile As String
+  zielFile = ES.Range("D34")
+  Dim zielSheet As String
+  zielSheet = ES.Range("D35")
+
+  Dim Z As Worksheet
+  On Error GoTo Fehler
+  Set Z = Workbooks(zielFile).Worksheets(zielSheet)
+  
+  Dim i As Integer
+  
+  For i = 8 To WK.UsedRange.Rows.Count
+    ' TODO
+    ' - Zuweisen der Felder
+    ' - implementieren des Bildes
+  Next i
+  
+Fehler:
+  If Len(zielFile) > 0 Then
+        MsgBox "Datei " & zielFile & "ist nicht geöffnet!", vbCritical, sourceFile
+    End If
+End Sub
+  
 Private Sub Logo1Laden_Click()
   Bild_laden (False)
 End Sub
@@ -61,72 +111,72 @@ Private Sub Logo2Laden_Click()
 End Sub
 
 Private Sub Logo2Setzen_Click()
-pasteLogo (True)
+  pasteLogo (True)
 End Sub
 
 Sub pasteLogo(rightLogo As Boolean)
 
-Dim name As String
-Dim vorhanden As Boolean
-vorhanden = False
-
-Dim WS As Worksheet
-Dim wb As Workbook
-Dim ES As Worksheet
-Dim p As Shape
-Dim sourceP As Shape
-
-Set wb = ThisWorkbook
-Set ES = wb.Worksheets("Einstellungen")
-
-If rightLogo = False Then
-  name = "logo_links"
-Else
-  name = "logo_rechts"
-End If
-
-On Error GoTo Weiter
-  Set sourceP = ES.Shapes(name)
-  vorhanden = True
+  Dim Name As String
+  Dim vorhanden As Boolean
+  vorhanden = False
+  
+  Dim WS As Worksheet
+  Dim wb As Workbook
+  Dim ES As Worksheet
+  Dim p As Shape
+  Dim sourceP As Shape
+  
+  Set wb = ThisWorkbook
+  Set ES = wb.Worksheets("Einstellungen")
+  
+  If rightLogo = False Then
+    Name = "logo_links"
+  Else
+    Name = "logo_rechts"
+  End If
+  
+  On Error GoTo Weiter
+    Set sourceP = ES.Shapes(Name)
+    vorhanden = True
 Weiter:
-On Error GoTo 0
-
-If vorhanden Then
-    sourceP.Copy
-    Application.EnableEvents = False
-    
-    For Each WS In wb.Worksheets
-      If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
-        sourceP.Copy
-        FuncSubs.ShapeEntfernen name, WS
-        Application.GoTo WS.Range("A1")
-        ActiveSheet.Paste
-        Set p = WS.Shapes(name)
-        p.Top = WS.Range("A1").Top
-        If (rightLogo) Then
-          If (WS.name = "Mannschaft") Then
-            p.Left = WS.Range("M1").Left
+  On Error GoTo 0
+  
+  If vorhanden Then
+      sourceP.Copy
+      Application.EnableEvents = False
+      
+      For Each WS In wb.Worksheets
+        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
+          sourceP.Copy
+          FuncSubs.ShapeEntfernen Name, WS
+          Application.GoTo WS.Range("A1")
+          ActiveSheet.Paste
+          Set p = WS.Shapes(Name)
+          p.Top = WS.Range("A1").Top
+          If (rightLogo) Then
+            If (WS.Name = "Mannschaft") Then
+              p.Left = WS.Range("M1").Left
+            Else
+              p.Left = WS.Range("X1").Left
+            End If
           Else
-            p.Left = WS.Range("X1").Left
+            p.Left = WS.Range("B1").Left
           End If
-        Else
-          p.Left = WS.Range("B1").Left
         End If
-      End If
-    Next WS
-    Application.GoTo ES.Range("A1")
-    MsgBox "Das neue Logo '" & name & "' wurde auf allen Blättern gesetzt!"
-    Application.EnableEvents = True
-Else
-    Application.EnableEvents = False
-    For Each WS In wb.Worksheets
-      If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
-        FuncSubs.ShapeEntfernen name, WS
-      End If
-    Next WS
-    Application.EnableEvents = True
-    MsgBox "Das Logo '" & name & "' wurde von allen Blättern entfernt!"
-End If
+      Next WS
+      Application.GoTo ES.Range("A1")
+      MsgBox "Das neue Logo '" & Name & "' wurde auf allen Blättern gesetzt!"
+      Application.EnableEvents = True
+  Else
+      Application.EnableEvents = False
+      For Each WS In wb.Worksheets
+        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
+          FuncSubs.ShapeEntfernen Name, WS
+        End If
+      Next WS
+      Application.EnableEvents = True
+      MsgBox "Das Logo '" & Name & "' wurde von allen Blättern entfernt!"
+  End If
 
 End Sub
 

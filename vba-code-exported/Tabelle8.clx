@@ -79,18 +79,18 @@ For aktz = firstz To lastz
         For Each WS In wb.Worksheets
             ptk = 0
             fak = "-"
-            If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Then
+            If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
                 For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
                     If Zelle.Value = Verein Then
-                        aktpt = Zelle.Offset(0, 18).Value
-                        aktFa = Zelle.Offset(0, -2).Value
+                        aktpt = Zelle.offset(0, 18).Value
+                        aktFa = Zelle.offset(0, -2).Value
                         If aktpt >= ptk Then
                             ptk = aktpt
                             fak = aktFa
                         End If
                     End If
                 Next Zelle
-                Select Case WS.name
+                Select Case WS.Name
                     Case "Klasse 1"
                         MS.Cells(aktz, 4).Value = Application.WorksheetFunction.Round(ptk, 2)
                         MS.Cells(aktz, 5).Value = fak
@@ -200,10 +200,10 @@ For aktz = firstz To lastz
         'Punkteschnitt
         MS.Cells(aktz, 3).FormulaR1C1 = "=IF(RC[1] > 0, ROUND(RC[2]/RC[1],2), 0)"
         For Each WS In wb.Worksheets
-            If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Then
+            If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
                 For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
                     If Zelle.Value = Verein Then
-                        aktpt = Round(Zelle.Offset(0, 18).Value, 2)
+                        aktpt = Round(Zelle.offset(0, 18).Value, 2)
                         gespunkte = Round(gespunkte, 2) + Round(aktpt, 2)
                         fahrer = fahrer + 1
                     End If

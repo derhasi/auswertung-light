@@ -57,7 +57,7 @@ End Sub
 
 '''New in 19d
 Function versionNr() As String
-  versionNr = "0.20a"
+  versionNr = "0.20b"
 End Function
 
 '''New in 20
@@ -69,7 +69,7 @@ Sub exportUrkunden(Klasse As String)
     Set ES = ThisWorkbook.Worksheets("Einstellungen")
     
     For Each WS In ThisWorkbook.Worksheets
-        If Klasse = "" Or WS.name = Klasse Then
+        If Klasse = "" Or WS.Name = Klasse Then
         
         End If
     Next WS
