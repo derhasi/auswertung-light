@@ -56,10 +56,10 @@ Sub Add_CommandBar()
         
         On Error Resume Next
         ' Menü löschen falls schon vorhanden
-        AL_CB.Controls("Auswertung Light v0.19b - Zugspitzpokal").Delete
+        AL_CB.Controls("Auswertung Light v0.19c - Zugspitzpokal").Delete
         On Error GoTo 0
             With AL_CB.Controls.Add(Type:=msoControlPopup)
-                .Caption = "&Auswertung Light v0.19b - Zugspitzpokal"
+                .Caption = "&Auswertung Light v0.19c - Zugspitzpokal"
                 With .Controls.Add
                     .FaceId = 487
                     .Caption = "&Informationen"

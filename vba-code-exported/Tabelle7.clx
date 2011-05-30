@@ -13,116 +13,78 @@ End Sub
 
 
 Sub ImportCSV()
-Dim datei As Variant
-
-datei = Application.GetOpenFilename("Zugspitzpokal Datenliste, *.csv", ButtonText:="importieren", MultiSelect:=False)
-
-Application.EnableEvents = False
-
-If datei <> False Then
-    Worksheets("Daten").Cells.Delete
-    With Worksheets("Daten").QueryTables.Add(Connection:= _
-            "TEXT;" & datei, _
-            Destination:=Worksheets("Daten").Range("A1"))
-            .name = "view-personen"
-            .FieldNames = True
-            .RowNumbers = False
-            .FillAdjacentFormulas = False
-            .PreserveFormatting = True
-            .RefreshOnFileOpen = False
-            .RefreshStyle = xlInsertDeleteCells
-            .SavePassword = False
-            .SaveData = True
-            .AdjustColumnWidth = True
-            .RefreshPeriod = 0
-            .TextFilePromptOnRefresh = False
-            .TextFilePlatform = 1252
-            .TextFileStartRow = 1
-            .TextFileParseType = xlDelimited
-            .TextFileTextQualifier = xlTextQualifierDoubleQuote
-            .TextFileConsecutiveDelimiter = False
-            .TextFileTabDelimiter = False
-            .TextFileSemicolonDelimiter = False
-            .TextFileCommaDelimiter = True
-            .TextFileSpaceDelimiter = False
-            .TextFileColumnDataTypes = Array(xlTextFormat, xlTextFormat, xlTextFormat, xlTextFormat, xlTextFormat, xlTextFormat, xlTextFormat, xlTextFormat, xlDMYFormat, xlSkipColumn, xlSkipColumn)
-            .TextFileTrailingMinusNumbers = True
-            .Refresh BackgroundQuery:=False
-    End With
+    Dim datei As Variant
     
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã„", "Ä"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã¤", "ä"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã–", "Ö"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã¶", "ö"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ãœ", "Ü"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã¼", "ü"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "ÃŸ", "ß"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Â", """"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã©", "é"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã©", "è"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã¨", "á"
-    FuncSubs.RangeReplace ActiveSheet.UsedRange, "Ã ", "à"
+    datei = Application.GetOpenFilename("Zugspitzpokal Datenliste, *.csv", ButtonText:="importieren", MultiSelect:=False)
     
-    Dim R As Range
+    Application.EnableEvents = False
+    
+    If datei <> False Then
+        '''Changed 19b -> 19c
+        Worksheets("Daten").Cells.Delete
+        readCSV datei, Worksheets("Daten")
+        Worksheets("Daten").Range("J:AA").Clear
+        '''End Of Changes 19b -> 19c
+        Dim R As Range
+     
+        For Each R In Intersect(Worksheets("Daten").UsedRange, Worksheets("Daten").Range("A:A"))
+            R.NumberFormat = "0"
+            R.FormulaR1C1 = R.Value
+        Next R
        
-    For Each R In Intersect(Worksheets("Daten").UsedRange, Worksheets("Daten").Range("A:A"))
-        R.NumberFormat = "0"
-        R.FormulaR1C1 = R.Value
-    Next R
-   
-    Worksheets("Daten").Range("A1:I1").Font.Bold = True
-    Worksheets("Daten").Columns("A:A").FormatConditions.Delete
-    Worksheets("Daten").Columns("A:A").FormatConditions.Add Type:=xlCellValue, Operator:=xlNotBetween, _
-        Formula1:="0", Formula2:="9999999999999"
-    
-    With Worksheets("Daten").Columns("A:A").FormatConditions(1).Interior
-        .ColorIndex = 40
-        .Pattern = xlSolid
-    End With
-    
-    ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
-        "=Daten!R2C1:R65536C1"
+        Worksheets("Daten").Range("A1:I1").Font.Bold = True
+        Worksheets("Daten").Columns("A:A").FormatConditions.Delete
+        Worksheets("Daten").Columns("A:A").FormatConditions.Add Type:=xlCellValue, Operator:=xlNotBetween, _
+            Formula1:="0", Formula2:="9999999999999"
         
-    Application.CommandBars("External Data").Visible = False
-    
-    Application.EnableEvents = True
-    
-End If
+        With Worksheets("Daten").Columns("A:A").FormatConditions(1).Interior
+            .ColorIndex = 40
+            .Pattern = xlSolid
+        End With
+        
+        ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
+            "=Daten!R2C1:R65536C1"
+            
+        Application.CommandBars("External Data").Visible = False
+        
+        Application.EnableEvents = True
+        
+    End If
 
 End Sub
 
 Sub Daten_Speichern()
 
-Dim datei As Variant
-
-datei = Application.GetSaveAsFilename("Daten.csv", "Zugspitzpokal Datenliste (*.csv), *.csv", Title:="ZP Datenliste speichern")
-
-If datei <> False Then
-    Sheets("Daten").Select
-    Sheets("Daten").Copy
-    ActiveWorkbook.SaveAs Filename:=datei, FileFormat:=xlCSV, _
-        CreateBackup:=False
-    ActiveWorkbook.Close True
-    MsgBox "Speichern von ZP Datenliste erfolgreich!", vbInformation, "Speichern erfolgreich"
-Else
-    MsgBox "Das Speichern von ZP Datenliste wurde vom Benutzer abgebrochen!", vbExclamation, "Benutzerabbruch"
-End If
+    Dim datei As Variant
+    
+    datei = Application.GetSaveAsFilename("Daten.csv", "Zugspitzpokal Datenliste (*.csv), *.csv", Title:="ZP Datenliste speichern")
+    
+    If datei <> False Then
+        Sheets("Daten").Select
+        Sheets("Daten").Copy
+        ActiveWorkbook.SaveAs Filename:=datei, FileFormat:=xlCSV, _
+            CreateBackup:=False
+        ActiveWorkbook.Close True
+        MsgBox "Speichern von ZP Datenliste erfolgreich!", vbInformation, "Speichern erfolgreich"
+    Else
+        MsgBox "Das Speichern von ZP Datenliste wurde vom Benutzer abgebrochen!", vbExclamation, "Benutzerabbruch"
+    End If
 
 End Sub
 
 
 Private Sub Worksheet_Activate()
-Application.CommandBars("External Data").Visible = False
+    .CommandBars("External Data").Visible = False
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
-        "=Daten!R2C1:R65536C1"
-Application.CommandBars("External Data").Visible = False
-
-If Target.Column < 10 And Target.Address = Range("J1").Text Then
-    Tabelle7.Rows(Target.Row).Columns(10).Value = "geändert"
-End If
+    ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
+            "=Daten!R2C1:R65536C1"
+    Application.CommandBars("External Data").Visible = False
+    
+    If Target.Column < 10 And Target.Address = Range("J1").Text Then
+        Tabelle7.Rows(Target.Row).Columns(10).Value = "geändert"
+    End If
 
 End Sub
 
