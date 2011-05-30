@@ -9,6 +9,12 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub CommandButton1_Click()
 
+Mannschaftswertung_berechnen
+
+End Sub
+
+Sub Mannschaftswertung_berechnen()
+
 Dim WB As Workbook
 Dim WS As Worksheet
 Dim MS As Worksheet
@@ -27,11 +33,11 @@ Dim fa4 As String
 Dim aktFa As String
 Dim aktpt As Single
 
-
-
 Set WB = ThisWorkbook
 Set MS = WB.Worksheets("Mannschaft")
 Set WS = ActiveSheet
+
+
 
 MS.Rows("7:6000").Delete
 
@@ -143,3 +149,5 @@ MS.Range("A7:K6000").Sort Key1:=MS.Range("C7"), Order1:=xlDescending, Header:=xl
         OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
 
 End Sub
+
+

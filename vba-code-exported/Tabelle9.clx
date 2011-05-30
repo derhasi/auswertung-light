@@ -7,7 +7,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
-Private Sub CommandButton1_Click()
+Sub ZP_Output_Erstellen_Click()
+    ZP_Output_Erstellen
+End Sub
+
+Sub ZP_Output_Erstellen()
 
 Dim WS As Worksheet
 Dim WB As Workbook
@@ -63,4 +67,25 @@ For Each WS In WB.Worksheets
 Next WS
 
 End Sub
+
+
+Sub ZP_Output_Speichern()
+
+Dim datei As Variant
+
+datei = Application.GetSaveAsFilename("zp_output.csv", "Zugspitzpokal Output (*.csv), *.csv", Title:="ZP Output speichern")
+
+If datei <> False Then
+    Sheets("zp_output").Select
+    Sheets("zp_output").Copy
+    ActiveWorkbook.SaveAs Filename:=datei, FileFormat:=xlCSV, _
+        CreateBackup:=False
+    ActiveWorkbook.Close True
+    MsgBox "Speichern von ZP Output erfolgreich!", vbInformation, "Speichern erfolgreich"
+Else
+    MsgBox "Das Speichern von ZP Output wurde vom Benutzer abgebrochen!", vbExclamation, "Benutzerabbruch"
+End If
+
+End Sub
+
 

@@ -1,4 +1,4 @@
-Attribute VB_Name = "Modul1"
+Attribute VB_Name = "FuncSubs"
 Function HoleZeile(Wert As String, Spalte As Integer, Tabellenblatt As String)
 
 Dim TB As Worksheet
@@ -25,7 +25,6 @@ End Function
 
 
 Sub DeleteZeile()
-Attribute DeleteZeile.VB_Description = "Löscht gewählte Zeile, falls Zeilennummer größer 7"
 Attribute DeleteZeile.VB_ProcData.VB_Invoke_Func = "l\n14"
 
 WSName = Selection.Parent.name
@@ -59,4 +58,11 @@ Dim name As String
     ActiveWorkbook.Close
         
 End Sub
+
+
+Sub RangeReplace(Bereich As Range, FromT As String, ToT As String)
+    Bereich.Replace What:=FromT, Replacement:=ToT, LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False
+End Sub
+
 

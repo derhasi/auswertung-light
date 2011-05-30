@@ -1,0 +1,293 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "DieseArbeitsmappe"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+Dim AL_CB As CommandBar
+Dim CB_Arr As Collection
+
+Sub Hide_CommandBars()
+
+Dim C As CommandBar
+Set CB_Arr = New Collection 'Speicher um vor Ende die Leisten wieder zurückzusetzen
+For Each C In Application.CommandBars
+    If C.Visible Then CB_Arr.Add (C.name)
+    On Error Resume Next
+    C.Visible = False
+Next C
+
+End Sub
+
+Sub Reset_CommandBars()
+
+Dim C As Variant
+
+If CB_Arr Is Nothing Then
+Else
+For Each C In CB_Arr
+    On Error Resume Next
+    Application.CommandBars(C).Visible = True
+Next C
+End If
+
+End Sub
+
+Sub Delete_CommandBar()
+' AUSWERTUNG LIGHT CommandBAr
+      On Error Resume Next
+      AL_CB.Delete
+
+End Sub
+
+
+Sub Add_CommandBar()
+' ERSTELLT DIE AUSWERTUNG LIGHT CommandBAr
+
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        Application.CommandBars("ZP Auswertung Light").Delete
+        
+        Application.CommandBars.Add name:="ZP Auswertung Light", Temporary:=False, Position:=msoBarTop
+        Set AL_CB = Application.CommandBars("ZP Auswertung Light")
+        
+        On Error Resume Next
+        ' Menü löschen falls schon vorhanden
+        AL_CB.Controls("Auswertung Light v0.17 - Zugspitzpokal").Delete
+        On Error GoTo 0
+            With AL_CB.Controls.Add(Type:=msoControlPopup)
+                .Caption = "&Auswertung Light v0.17 - Zugspitzpokal"
+                With .Controls.Add
+                    .FaceId = 487
+                    .Caption = "&Informationen"
+                    .OnAction = "MenuSubs.Info"
+                End With
+                With .Controls.Add
+                    .FaceId = 926
+                    .Caption = "&Hilfe"
+                    .OnAction = "MenuSubs.Hilfe"
+                End With
+        End With
+        
+        'SPEICHERN ...
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Speichern").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 3
+            .Caption = "&Speichern"
+            .OnAction = "MenuSubs.Save"
+        End With
+               
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Einstellungen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 65
+            .Caption = "&Einstellungen"
+            .OnAction = "MenuSubs.Einstellungen"
+        End With
+               
+                    
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Wertungen").Delete
+        On Error GoTo 0
+            With AL_CB.Controls.Add(Type:=msoControlPopup)
+                .BeginGroup = True 'Trennlinie
+                On Error GoTo 0
+                .Caption = "&Wertungen"
+    '           erster Menüpunkt
+                With .Controls.Add
+                    .FaceId = 71
+                    .Caption = "Klasse&1"
+                    .OnAction = "MenuSubs.Klasse1"
+                End With
+                With .Controls.Add
+                    .FaceId = 72
+                    .Caption = "Klasse&2"
+                    .OnAction = "MenuSubs.Klasse2"
+                End With
+                With .Controls.Add
+                    .FaceId = 73
+                    .Caption = "Klasse&3"
+                    .OnAction = "MenuSubs.Klasse3"
+                End With
+                With .Controls.Add
+                    .FaceId = 74
+                    .Caption = "Klasse&4"
+                    .OnAction = "MenuSubs.Klasse4"
+                End With
+                With .Controls.Add
+                    .FaceId = 75
+                    .Caption = "Klasse&5"
+                    .OnAction = "MenuSubs.Klasse5"
+                End With
+                With .Controls.Add
+                    .BeginGroup = True
+                    .FaceId = 92
+                    .Caption = "&Mannschaft"
+                    .OnAction = "MenuSubs.Mannschaft"
+                End With
+            End With
+        
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Ergebnis berechnen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 11
+                .Caption = "E&rgebnis berechnen"
+                .OnAction = "EventSubs.Ergebnis_berechnen"
+        End With
+        
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Sortieren nach Startnummer").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 7
+                .Caption = "&Sortieren nach Startnummer"
+                .OnAction = "EventSubs.Sortieren_nach_Startnummer"
+        End With
+        
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Zeile löschen").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add
+            On Error GoTo 0
+            .FaceId = 478
+                .Caption = "&Zeile löschen"
+                .OnAction = "FuncSubs.DeleteZeile"
+        End With
+        
+      
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("Daten").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add(Type:=msoControlPopup)
+            .BeginGroup = True 'Trennlinie
+            On Error GoTo 0
+            .Caption = "&Daten"
+'           erster Menüpunkt
+            With .Controls.Add
+                .FaceId = 353
+                .Caption = "&Anzeigen"
+                .OnAction = "MenuSubs.Daten"
+            End With
+'           Zweiter Menüpunkt
+            With .Controls.Add
+                .FaceId = 526
+                .Caption = "CSV &Import..."
+                .OnAction = "Tabelle7.ImportCSV"
+            End With
+            
+            With .Controls.Add
+                .FaceId = 3
+                .Caption = "&Exportieren..."
+                .OnAction = "Tabelle7.Daten_Speichern"
+            End With
+        End With
+        
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("ZP Output").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add(Type:=msoControlPopup)
+            .BeginGroup = True 'Trennlinie
+            On Error GoTo 0
+            .Caption = "ZP &Output"
+            With .Controls.Add
+                .FaceId = 498
+                .Caption = "&Anzeigen"
+                .OnAction = "MenuSubs.ZPOutput"
+            End With
+            With .Controls.Add
+                .FaceId = 31
+                .Caption = "&Erstellen"
+                .OnAction = "Tabelle9.ZP_Output_Erstellen"
+            End With
+'           Zweiter Menüpunkt
+            With .Controls.Add
+                .FaceId = 3
+                .Caption = "Erstellen und &Speichern..."
+                .OnAction = "MenuSubs.ZPOutput_Erstellen_Speichern"
+            End With
+        End With
+        
+        On Error Resume Next
+'       Menü löschen falls schon vorhanden
+        AL_CB.Controls("&Hilfe").Delete
+        On Error GoTo 0
+        With AL_CB.Controls.Add(Type:=msoControlPopup)
+            On Error GoTo 0
+            .Caption = "&Hilfe"
+            With .Controls.Add
+                If (Application.EnableEvents) Then
+                    .Caption = "Ereignisssteuerung aktiviert"
+                    .FaceId = 1087
+                    .Enabled = False
+                    .OnAction = "MenuSubs.Nix"
+                Else
+                    .Caption = "Ereignisssteuerung aktivieren"
+                    .FaceId = 463
+                    .Enabled = True
+                    .OnAction = "MenuSubs.ZPOutput_Erstellen_Speichern"
+                End If
+            End With
+            With .Controls.Add
+                    .FaceId = 926
+                    .Caption = "&Hilfe"
+                    .OnAction = "MenuSubs.Hilfe"
+            End With
+        End With
+        
+        
+        AL_CB.Visible = True
+        
+End Sub
+
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+Delete_CommandBar
+Reset_CommandBars
+End Sub
+
+Private Sub Workbook_Open()
+Hide_CommandBars
+Add_CommandBar
+Workbook_SheetActivate ActiveSheet
+
+Application.MacroOptions Macro:="DeleteZeile", Description:="", ShortcutKey:="l"
+End Sub
+
+Private Sub Workbook_SheetActivate(ByVal Sh As Object)
+
+Select Case Sh.name
+    Case "Klasse 1" To "Klasse 5"
+           On Error Resume Next
+            AL_CB.Controls("Ergebnis berechnen").Enabled = True
+            AL_CB.Controls("Sortieren nach Startnummer").Enabled = True
+            AL_CB.Controls("Zeile löschen").Enabled = True
+    Case "Mannschaft"
+            AL_CB.Controls("Ergebnis berechnen").Enabled = True
+            AL_CB.Controls("Sortieren nach Startnummer").Enabled = False
+            AL_CB.Controls("Zeile löschen").Enabled = False
+    Case Else
+            On Error Resume Next
+            AL_CB.Controls("Ergebnis berechnen").Enabled = False
+            AL_CB.Controls("Sortieren nach Startnummer").Enabled = False
+            AL_CB.Controls("Zeile löschen").Enabled = False
+End Select
+
+End Sub
