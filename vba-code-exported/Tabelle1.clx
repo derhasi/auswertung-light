@@ -155,7 +155,7 @@ Weiter:
           p.Top = WS.Range("A1").Top
           If (rightLogo) Then
             If (WS.Name = "Mannschaft") Then
-              p.Left = WS.Range("M1").Left
+              p.Left = WS.Range("O1").Left
             Else
               p.Left = WS.Range("X1").Left
             End If
