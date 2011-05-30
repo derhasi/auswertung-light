@@ -22,7 +22,7 @@ For Each Zelle In Bereich
             If HZ > 0 Then
                  Zelle.Parent.Cells(Zelle.Row, 3).Value = DB.Cells(HZ, 2).Value
                 'Rookie
-                If Year(Worksheets("Einstellungen").Range("D5").Value) = DB.Cells(HZ, 5).Value Then
+                If Year(Worksheets("Einstellungen").Range("D5").Value) & "" = "" & DB.Cells(HZ, 5).Value Then
                   With Zelle.Parent.Cells(Zelle.Row, 3).Interior
                     .ColorIndex = 15
                     .Pattern = xlSolid
@@ -111,7 +111,7 @@ If tr <> tr0 Or tc <> tc0 Then Target.Parent.Cells(tr, tc).Select
 End Sub
 
 Sub CB1_Click(WS As Worksheet)
-
+'Ergebnisliste berechnen
     WS.Range("A8:Y6000").Sort Key1:=WS.Range("H8"), Order1:=xlAscending, Key2:=WS.Range("U8") _
         , Order2:=xlAscending, Key3:=WS.Range("V8"), Order3:=xlAscending, Header:= _
         xlNo, OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
@@ -121,6 +121,41 @@ Sub CB1_Click(WS As Worksheet)
       .PatternColorIndex = xlAutomatic
     End With
 
+'Rookies markieren
+Dim Bereich As Range
+Dim Zelle As Range
+Dim DB As Worksheet
+Dim HZ As Integer
+'Holt Daten anhand der Lizenznummer und formatiert die entsprechende Zeile
+Dim actYear As String
+actYear = "" & Year(Worksheets("Einstellungen").Range("D5").Value)
+
+Set DB = ThisWorkbook.Worksheets("Daten")
+Set Bereich = Intersect(WS.UsedRange.Cells, WS.Columns(7).Cells)
+If Bereich Is Nothing Then Exit Sub
+
+Application.EnableEvents = False
+
+For Each Zelle In Bereich
+    If Zelle.Row > 7 Then
+        If Zelle.Value <> "" Then
+            HZ = HoleZeile(Zelle.Value, 1, "Daten")
+            If HZ > 0 Then
+                 Zelle.Parent.Cells(Zelle.Row, 3).Value = DB.Cells(HZ, 2).Value
+                'Rookie
+                If actYear = "" & DB.Cells(HZ, 5).Value Then
+                  With Zelle.Parent.Cells(Zelle.Row, 3).Interior
+                    .ColorIndex = 15
+                    .Pattern = xlSolid
+                    .PatternColorIndex = xlAutomatic
+                  End With
+                Else
+                  Zelle.Parent.Cells(Zelle.Row, 3).Interior.ColorIndex = xlNone
+                End If
+            End If
+        End If
+    End If
+Next Zelle
 
 End Sub
 
