@@ -119,5 +119,13 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 ActiveWorkbook.Names.Add name:="Lizenz", RefersToR1C1:= _
         "=Daten!R2C1:R65536C1"
 Application.CommandBars("External Data").Visible = False
+
+If Target.Column < 10 And Target.Address = Range("J1").Text Then
+    Tabelle7.Rows(Target.Row).Columns(10).Value = "geändert"
+End If
+
 End Sub
 
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Range("J1") = Target.Address
+End Sub

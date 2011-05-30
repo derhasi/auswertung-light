@@ -59,7 +59,7 @@ Sub Add_CommandBar()
         AL_CB.Controls("Auswertung Light v0.17 - Zugspitzpokal").Delete
         On Error GoTo 0
             With AL_CB.Controls.Add(Type:=msoControlPopup)
-                .Caption = "&Auswertung Light v0.17 - Zugspitzpokal"
+                .Caption = "&Auswertung Light v0.18a - Zugspitzpokal"
                 With .Controls.Add
                     .FaceId = 487
                     .Caption = "&Informationen"
@@ -250,6 +250,11 @@ Sub Add_CommandBar()
                     .FaceId = 926
                     .Caption = "&Hilfe"
                     .OnAction = "MenuSubs.Hilfe"
+            End With
+            With .Controls.Add
+                    .FaceId = 1392
+                    .Caption = "&Tastenkürzel"
+                    .OnAction = "MenuSubs.Shortcuts"
             End With
         End With
         
