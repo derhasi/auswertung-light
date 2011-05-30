@@ -21,7 +21,7 @@ Sub Daten()
 Tabelle7.Activate
 End Sub
 Sub Info()
-    MsgBox "Auswertung Light für Excel - Version 0.18" & Chr(10) & "von Johannes Haseitl - www.derhasi.de - www.zugspitzpokal.de", vbInformation, "Information"
+    MsgBox "Auswertung Light für Excel - Version 0.19a" & Chr(10) & "von Johannes Haseitl - www.derhasi.de - www.zugspitzpokal.de", vbInformation, "Information"
 End Sub
 Sub Hilfe()
     Tabelle10.Activate

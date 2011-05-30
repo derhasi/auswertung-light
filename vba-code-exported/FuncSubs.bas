@@ -65,4 +65,13 @@ Sub RangeReplace(Bereich As Range, FromT As String, ToT As String)
         :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False
 End Sub
 
+Sub ShapeEntfernen(name As String, WS As Worksheet)
+  Dim s As Shape
+  For Each s In WS.Shapes
+    If s.name = name Then
+      s.Delete
+    End If
+  Next s
+End Sub
+
 

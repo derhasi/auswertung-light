@@ -56,10 +56,10 @@ Sub Add_CommandBar()
         
         On Error Resume Next
         ' Menü löschen falls schon vorhanden
-        AL_CB.Controls("Auswertung Light v0.19 - Zugspitzpokal").Delete
+        AL_CB.Controls("Auswertung Light v0.19a - Zugspitzpokal").Delete
         On Error GoTo 0
             With AL_CB.Controls.Add(Type:=msoControlPopup)
-                .Caption = "&Auswertung Light v0.19 - Zugspitzpokal"
+                .Caption = "&Auswertung Light v0.19a - Zugspitzpokal"
                 With .Controls.Add
                     .FaceId = 487
                     .Caption = "&Informationen"
@@ -285,6 +285,7 @@ Select Case Sh.name
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = True
             AL_CB.Controls("Zeile löschen").Enabled = True
     Case "Mannschaft"
+            On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = True
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = False
             AL_CB.Controls("Zeile löschen").Enabled = False

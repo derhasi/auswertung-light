@@ -1,0 +1,133 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "Tabelle1"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+Sub Bild_laden(rightLogo As Boolean)
+
+Dim name As String
+Dim h As Single
+Dim w As Single
+Dim t As Single
+Dim l As Single
+
+
+h = 65
+w = 65
+
+If rightLogo = False Then
+  name = "logo_links"
+  t = Me.Logo1Laden.Top + Me.Logo1Laden.Height + 10
+  l = Me.Logo1Laden.Left
+Else
+  name = "logo_rechts"
+  t = Me.Logo2Laden.Top + Me.Logo2Laden.Height + 10
+  l = Me.Logo2Laden.Left
+End If
+
+Dim ES As Worksheet
+Set ES = ThisWorkbook.Worksheets("Einstellungen")
+Dim p As Shape
+Dim datei As Variant
+
+datei = Application.GetOpenFilename("Bilder, *.gif; *.jpg; *.png", ButtonText:="importieren", MultiSelect:=False)
+
+If datei <> False Then
+  Application.EnableEvents = False 'False
+  FuncSubs.ShapeEntfernen name, ES
+  Set p = ES.Shapes.AddPicture(datei, msoFalse, msoTrue, l, t, w, h)
+  p.name = name
+  Application.EnableEvents = True
+End If
+
+
+
+End Sub
+
+Private Sub Logo1Laden_Click()
+  Bild_laden (False)
+End Sub
+
+Private Sub Logo1Setzen_Click()
+  pasteLogo (False)
+End Sub
+
+Private Sub Logo2Laden_Click()
+  Bild_laden (True)
+End Sub
+
+Private Sub Logo2Setzen_Click()
+pasteLogo (True)
+End Sub
+
+Sub pasteLogo(rightLogo As Boolean)
+
+Dim name As String
+Dim vorhanden As Boolean
+vorhanden = False
+
+Dim WS As Worksheet
+Dim WB As Workbook
+Dim ES As Worksheet
+Dim p As Shape
+Dim sourceP As Shape
+
+Set WB = ThisWorkbook
+Set ES = WB.Worksheets("Einstellungen")
+
+If rightLogo = False Then
+  name = "logo_links"
+Else
+  name = "logo_rechts"
+End If
+
+On Error GoTo Weiter
+  Set sourceP = ES.Shapes(name)
+  vorhanden = True
+Weiter:
+On Error GoTo 0
+
+If vorhanden Then
+    sourceP.Copy
+    Application.EnableEvents = False
+    
+    For Each WS In WB.Worksheets
+      If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
+        sourceP.Copy
+        FuncSubs.ShapeEntfernen name, WS
+        Application.Goto WS.Range("A1")
+        ActiveSheet.Paste
+        Set p = WS.Shapes(name)
+        p.Top = WS.Range("A1").Top
+        If (rightLogo) Then
+          If (WS.name = "Mannschaft") Then
+            p.Left = WS.Range("M1").Left
+          Else
+            p.Left = WS.Range("X1").Left
+          End If
+        Else
+          p.Left = WS.Range("B1").Left
+        End If
+      End If
+    Next WS
+    Application.Goto ES.Range("A1")
+    MsgBox "Das neue Logo '" & name & "' wurde auf allen Blättern gesetzt!"
+    Application.EnableEvents = True
+Else
+    Application.EnableEvents = False
+    For Each WS In WB.Worksheets
+      If WS.name = "Klasse 1" Or WS.name = "Klasse 2" Or WS.name = "Klasse 3" Or WS.name = "Klasse 4" Or WS.name = "Klasse 5" Or WS.name = "Mannschaft" Then
+        FuncSubs.ShapeEntfernen name, WS
+      End If
+    Next WS
+    Application.EnableEvents = True
+    MsgBox "Das Logo '" & name & "' wurde von allen Blättern entfernt!"
+End If
+
+End Sub
+
+
