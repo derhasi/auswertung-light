@@ -13,6 +13,10 @@ Public Sub WS_Klasse_Change(Target As Range)
     Set Bereich = Intersect(Target.Cells, Target.Parent.Columns(7).Cells)
     If Bereich Is Nothing Then Exit Sub
     
+    ' Soll zeitenimport ID angezeigt werden?
+    Dim hideZeitImport As Boolean
+    hideZeitImport = (zeitImportSpalteEnsperrt() = False)
+    
     Application.EnableEvents = False
     
     For Each Zelle In Bereich
@@ -52,13 +56,13 @@ Public Sub WS_Klasse_Change(Target As Range)
                     Zelle.Parent.Cells(Zelle.Row, 25).FormulaR1C1 = "=IF(ISTEXT(RC[-24]),0,IF(RC[-24]=1,6,IF(RC[-24]>10,0.5,IF(RC[-24]<11,(12-RC[-24])/2))))"
                     ' Spalten für Zeitenimport
                     Zelle.Parent.Cells(Zelle.Row, 26).Font.ColorIndex = 2
-                    Zelle.Parent.Cells(Zelle.Row, 26).EntireColumn.Hidden = True
+                    Zelle.Parent.Cells(Zelle.Row, 26).EntireColumn.Hidden = hideZeitImport
                     Zelle.Parent.Cells(Zelle.Row, 27).Font.ColorIndex = 2
-                    Zelle.Parent.Cells(Zelle.Row, 27).EntireColumn.Hidden = True
+                    Zelle.Parent.Cells(Zelle.Row, 27).EntireColumn.Hidden = hideZeitImport
                     Zelle.Parent.Cells(Zelle.Row, 28).Font.ColorIndex = 2
-                    Zelle.Parent.Cells(Zelle.Row, 28).EntireColumn.Hidden = True
+                    Zelle.Parent.Cells(Zelle.Row, 28).EntireColumn.Hidden = hideZeitImport
                     ' Formatiere alle Zeilen
-                    With Zelle.Parent.Columns("A:Y").Rows(Zelle.Row).Cells
+                    With Zelle.Parent.Columns("A:AB").Rows(Zelle.Row).Cells
                         .Borders(xlDiagonalDown).LineStyle = xlNone
                         .Borders(xlDiagonalUp).LineStyle = xlNone
                         .Borders(xlEdgeLeft).LineStyle = xlNone
@@ -93,28 +97,37 @@ End Sub
 
 Sub WS_SelectionChange(Target As Range)
 
-    Dim tr As Integer
-    Dim tc As Integer
-    Dim tr0 As Integer
-    Dim tc0 As Integer
-    
-    tr = Selection.Row
-    tc = Selection.Column
-    tr0 = Selection.Row
-    tc0 = Selection.Column
-    
-    If tr > 7 Then
-        If tc = 1 Then tc = 2
-        If tc > 2 And tc < 7 Then tc = 7
-        If tc = 8 Then tc = 9
-        If tc = 12 Then tc = 13
-        If tc = 16 Then tc = 17
-        If tc = 20 Then tc = 23
-        If tc = 21 Then tc = 23
+  Dim tr As Integer
+  Dim tc As Integer
+  Dim tr0 As Integer
+  Dim tc0 As Integer
+  
+  tr = Selection.Row
+  tc = Selection.Column
+  tr0 = Selection.Row
+  tc0 = Selection.Column
+  
+  If tr > 7 Then
+      If tc = 1 Then tc = 2
+      If tc > 2 And tc < 7 Then tc = 7
+      If tc = 8 Then tc = 9
+      If tc = 12 Then tc = 13
+      If tc = 16 Then tc = 17
+      If tc = 20 Then tc = 23
+      If tc = 21 Then tc = 23
+      If zeitImportSpalteEnsperrt() = False Then
+        ' Alle Spalten gesperrt
         If tc > 23 Then tc = 2: tr = tr + 1
-    End If
-    
-If tr <> tr0 Or tc <> tc0 Then Target.Parent.Cells(tr, tc).Select
+      Else
+        ' Import ID Spalten sind nicht gesperrt
+        If tc > 23 And tc < 26 Then tc = 26
+        If tc > 28 Then tc = 2: tr = tr + 1
+      End If
+      
+  End If
+  
+  ' Die neue Selection setzen um zu überspringen.
+  If tr <> tr0 Or tc <> tc0 Then Target.Parent.Cells(tr, tc).Select
 
 End Sub
 
@@ -169,6 +182,12 @@ Sub CB_Ergebnisliste_Click(WS As Worksheet)
             End If
         End If
     Next Zelle
+    
+    ' Zeitenimport Spalten ausblenden
+    WS.Columns(26).Hidden = True
+    WS.Columns(27).Hidden = True
+    WS.Columns(28).Hidden = True
+    
     '''Changed 19b -> 19c
     Application.EnableEvents = True
 
@@ -186,6 +205,14 @@ Sub CB_Startliste_Click(WS As Worksheet)
          .Pattern = xlSolid
          .PatternColorIndex = xlAutomatic
     End With
+    
+    ' Zeitenimport Spalten einblenden (falls entsperrt)
+    If zeitImportSpalteEnsperrt() Then
+      WS.Columns(26).Hidden = False
+      WS.Columns(27).Hidden = False
+      WS.Columns(28).Hidden = False
+    End If
+    
 End Sub
 
 
@@ -291,7 +318,10 @@ Sub Zeit_Importieren(Optional t As Integer = -1)
   suchID = ZeitImportAktuelleID(t)
   
   ' Abbruch falls nichts eingegeben wurde.
-  If suchID = "" Then
+  If suchID = "" And zeitImportSpalteEnsperrt() = False Then
+    MsgBox "Der Aktuelle ZeitImport wurde durch eine leere Eingabe abgebrochen! Um eine Eingabe für die Import ID zu tätigen, muss die ID-Spalte entsperrt werden, oder die Eingabemaske nicht deaktiviert sein. (Siehe Einstellungen Zellen L57 und L59)", vbExclamation
+    Exit Sub
+  ElseIf suchID = "" Then
     MsgBox "Der Aktuelle ZeitImport wurde durch eine leere Eingabe abgebrochen!", vbExclamation
     Exit Sub
   End If
@@ -414,6 +444,49 @@ Function ZeitImportAktuelleID(Optional t As Integer = -1) As String
   Set AktuelleIDStorageRange = ZeitImportAktuelleIDZelle(t)
   ZeitImportAktuelleID = AktuelleIDStorageRange.Value
   
-  ZeitImportAktuelleID = InputBox("Geben Sie die ID für den zu tätigenden Zeitenimport an!", "ID für Zeitimportzuteilung", ZeitImportAktuelleID)
-
+  Dim inputID As Integer
+  inputID = ThisWorkbook.Worksheets("Einstellungen").Range("L59").Value
+  
+  ' Eingabemaske nur Anzeigen, wenn nicht gesperrt
+  If inputID = 0 Then
+    ZeitImportAktuelleID = InputBox("Geben Sie die ID für den zu tätigenden Zeitenimport an!", "ID für Zeitimportzuteilung", ZeitImportAktuelleID)
+  End If
 End Function
+
+' Gibt zurück ob die Zeitimportspalte deatkiviert ist.
+Function zeitImportSpalteEnsperrt() As Boolean
+  zeitImportSpalteEnsperrt = ThisWorkbook.Worksheets("Einstellungen").Range("L57").Value
+End Function
+
+' Eine Helper function um den aktuellen VBA Code ins lokale Verzeichnis zu kopieren
+' wird von mir für die GIT-Versionierung benutzt.
+Sub ExportCode()
+   Dim m As Object, i As Integer
+   Dim ExportPath As String
+   
+   ExportPath = "c:\Users\haseitl\Dropbox\Zugspitzpokal\Auswertung\git\vba-code-exported\"
+   With ActiveWorkbook.VBProject
+      For i = 1 To .VBComponents.Count
+         Set m = .VBComponents(i)
+         If m.CodeModule.CountOfLines > 2 Then
+            Select Case m.Type
+               Case 1   ' vbext_ct_StdModule
+                  m.Export ExportPath & m.Name & ".bas"
+                
+               Case 2   ' vbext_ct_ClassModule
+                  m.Export ExportPath & m.Name & ".cls"
+                
+               Case 3   ' vbext_ct_MSForm
+                  m.Export ExportPath & m.Name & ".frm"
+                
+               Case 100 ' vbext_ct_Document
+                  m.Export ExportPath & m.Name & ".clx"
+                
+               Case Else  '
+                  MsgBox "Don't know what to do!"
+            End Select
+         End If
+      Next
+   End With
+End Sub
+
