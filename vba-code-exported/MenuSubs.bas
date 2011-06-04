@@ -57,7 +57,7 @@ End Sub
 
 '''New in 19d
 Function versionNr() As String
-  versionNr = "0.21"
+  versionNr = "0.22"
 End Function
 
 '''New in 20
