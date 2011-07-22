@@ -209,3 +209,5 @@ Function KKLEINSTEG0(Bereich As Range, k As Integer, Optional nullGleich As Vari
     KKLEINSTEG0 = nullGleich
   End If
 End Function
+
+

@@ -575,6 +575,10 @@ Sub Mannschaftswertung_berechnen_2011SBM()
   Set MS = WB.Worksheets("Mannschaft")
   Set WS = ActiveSheet
   
+  Const POSFORMEL As String = "=IF(RC[4]=0,""niW"",IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6)))"
+  Const GESFORMEL As String = "=KKLEINSTEG0(RC[3]:RC[12],1)+KKLEINSTEG0(RC[3]:RC[12],2)+KKLEINSTEG0(RC[3]:RC[12],3)"
+  Const POSRANKFORMEL As String = "=POWER(10,8)*KKLEINSTEG0(RC[2]:RC[11],1,99)+POWER(10,6)*KKLEINSTEG0(RC[2]:RC[11],2,99)+POWER(10,4)*KKLEINSTEG0(RC[2]:RC[11],3,99)+POWER(10,2)*KKLEINSTEG0(RC[2]:RC[11],4,99)+KKLEINSTEG0(RC[2]:RC[11],5,99)"
+  Const IWFORMEL As String = "=IF(KKLEINSTEG0(RC[1]:RC[10],3) > 0, 1, 0)"
   
   MS.Rows("7:6000").Delete
   
@@ -587,22 +591,22 @@ Sub Mannschaftswertung_berechnen_2011SBM()
   WS.Activate
   'Ende Vereineholen
   
-  With MS.Range("A6:M6").Borders(xlEdgeLeft)
+  With MS.Range("A6:O6").Borders(xlEdgeLeft)
           .LineStyle = xlContinuous
           .Weight = xlMedium
           .ColorIndex = xlAutomatic
   End With
-  With MS.Range("A6:M6").Borders(xlEdgeTop)
+  With MS.Range("A6:O6").Borders(xlEdgeTop)
           .LineStyle = xlContinuous
           .Weight = xlMedium
           .ColorIndex = xlAutomatic
   End With
-  With MS.Range("A6:M6").Borders(xlEdgeBottom)
+  With MS.Range("A6:O6").Borders(xlEdgeBottom)
           .LineStyle = xlContinuous
           .Weight = xlMedium
           .ColorIndex = xlAutomatic
   End With
-  With MS.Range("A6:M6").Borders(xlEdgeRight)
+  With MS.Range("A6:O6").Borders(xlEdgeRight)
           .LineStyle = xlContinuous
           .Weight = xlMedium
           .ColorIndex = xlAutomatic
@@ -616,9 +620,9 @@ Sub Mannschaftswertung_berechnen_2011SBM()
       Verein = MS.Cells(aktz, 2).Value
       If Verein <> "" Then
           'Positionsanzeige
-          MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
+          MS.Cells(aktz, 1).FormulaR1C1 = POSFORMEL
           'Punktesumme fuer die besten 3.
-          MS.Cells(aktz, 3).FormulaR1C1 = "=KKLEINSTEG0(RC[1]:RC[9],1)+KKLEINSTEG0(RC[1]:RC[9],2)+KKLEINSTEG0(RC[1]:RC[9],3)"
+          MS.Cells(aktz, 3).FormulaR1C1 = GESFORMEL
           For Each WS In WB.Worksheets
               ptk = ""
               fak = "-"
@@ -627,10 +631,10 @@ Sub Mannschaftswertung_berechnen_2011SBM()
                       If Zelle.Value = Verein Then
                           aktpt = Zelle.offset(0, -5).Value
                           aktFa = Zelle.offset(0, -2).Value
-                          If ptk = "-" Then
+                          If ptk = "" Then
                             ptk = aktpt
                             fak = aktFa
-                          ElseIf aktp <> 0 And aktpt <= ptk Then
+                          ElseIf aktpt <> 0 And aktpt <= ptk Then
                               ptk = Application.WorksheetFunction.Round(aktpt, 0)
                               fak = aktFa
                           End If
@@ -656,9 +660,9 @@ Sub Mannschaftswertung_berechnen_2011SBM()
               End If
           Next WS
           ' Formel um eine Zahl zu bilden, die die besten Platzierungen vergleicht. Dabei dürfen Plätze nicht die 99 übersteigen
-          MS.Cells(aktz, 4).FormulaR1C1 = "=POWER(10,8)*KKLEINSTEG0(RC[2]:RC[11],1,99)+POWER(10,6)*KKLEINSTEG0(RC[2]:RC[11],2,99)+POWER(10,4)*KKLEINSTEG0(RC[2]:RC[11],3,99)+POWER(10,2)*KKLEINSTEG0(RC[2]:RC[11],4,99)+KKLEINSTEG0(RC[2]:RC[11],5,99)"
-          MS.Cells(aktz, 5).FormularR1C1 = "=IF(KKLEINSTEG0(RC[1]:RC[10],3) > 0, 1, 0)"
-          With MS.Columns("A:M").Rows(aktz).Borders(xlEdgeBottom)
+          MS.Cells(aktz, 4).FormulaR1C1 = POSRANKFORMEL
+          MS.Cells(aktz, 5).FormulaR1C1 = IWFORMEL
+          With MS.Columns("A:O").Rows(aktz).Borders(xlEdgeBottom)
               .LineStyle = xlContinuous
               .Weight = xlThin
               .ColorIndex = xlAutomatic
@@ -669,16 +673,24 @@ Sub Mannschaftswertung_berechnen_2011SBM()
   
   MS.Columns(4).Hidden = True
   
-  MS.Range("A7:M6000").Sort Key1:=MS.Range("E7"), Order1:=xlDescending, Key2:=MS.Range("C7"), Order2:=xlAscending, Key3:=MS.Range("D7"), Order3:=xlAscending, Header:=xlNo, _
+  MS.Range("A7:O6000").Sort Key1:=MS.Range("E7"), Order1:=xlDescending, Key2:=MS.Range("C7"), Order2:=xlAscending, Key3:=MS.Range("D7"), Order3:=xlAscending, Header:=xlNo, _
           OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
   
   'Leere Zeilen ausblenden
-  For aktz = firstz To lastz
+  Dim emptyRows() As Integer
+  ReDim emptyRows(lastz)
+  For aktz = lastz To firstz Step -1
       Verein = MS.Cells(aktz, 2).Value
       If Verein <> "" And MS.Cells(aktz, 3).Value = 0 Then
-          MS.Rows(aktz).Hidden = True
+          MS.Rows(aktz).Delete ' = True
+          ' Pos-Formel der Zeile darunter neu setzen damit Bezüge nicht verloren gehen (zeiel dadrunter ist nun aktuelle Zeile).
+          If MS.Cells(aktz, 2).Value <> "" Then
+            MS.Cells(aktz, 1).FormulaR1C1 = POSFORMEL
+          End If
       End If
   Next aktz
 
 End Sub
+
+
 
