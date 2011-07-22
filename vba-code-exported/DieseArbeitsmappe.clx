@@ -13,26 +13,26 @@ Dim CB_Arr As Collection
 
 Sub Hide_CommandBars()
 
-Dim C As CommandBar
+Dim c As CommandBar
 Set CB_Arr = New Collection 'Speicher um vor Ende die Leisten wieder zurückzusetzen
-For Each C In Application.CommandBars
-    If C.Visible Then CB_Arr.Add (C.Name)
+For Each c In Application.CommandBars
+    If c.Visible Then CB_Arr.Add (c.Name)
     On Error Resume Next
-    C.Visible = False
-Next C
+    c.Visible = False
+Next c
 
 End Sub
 
 Sub Reset_CommandBars()
 
-Dim C As Variant
+Dim c As Variant
 
 If CB_Arr Is Nothing Then
 Else
-For Each C In CB_Arr
+For Each c In CB_Arr
     On Error Resume Next
-    Application.CommandBars(C).Visible = True
-Next C
+    Application.CommandBars(c).Visible = True
+Next c
 End If
 
 End Sub

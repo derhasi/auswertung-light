@@ -20,12 +20,12 @@ Dim i As Integer
 Dim aktz As Integer
 Dim ZORow As Range
 Dim WSRow As Range
-Dim temp As String
+Dim Temp As String
 
 Set WB = ThisWorkbook
 Set ZO = WB.Worksheets("zp_output")
 Set WS = ActiveSheet
-temp = ZO.Range("A1").Value
+Temp = ZO.Range("A1").Value
 aktz = 1
 ZO.Cells.Clear
 
@@ -36,7 +36,7 @@ For Each WS In WB.Worksheets
     For i = 8 To WS.UsedRange.Rows.Count
       Set ZORow = ZO.Cells.Rows(aktz)
       Set WSRow = WS.UsedRange.Rows(i)
-      ZORow.Columns(1).Value = temp
+      ZORow.Columns(1).Value = Temp
       ZORow.Columns(2).Value = WSRow.Columns(7).Value
       ZORow.Columns(3).Value = WSRow.Columns(6).Value
       ZORow.Columns(4).Value = WSRow.Columns(2).Value

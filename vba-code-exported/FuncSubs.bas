@@ -143,3 +143,69 @@ Function replaceUmlauts(str As String)
   str = Replace(str, "Ã ", "à")
   replaceUmlauts = str
 End Function
+
+' Sortiert absteigend
+Function BubbleSort(TempArray As Variant, Optional ASC As Boolean = True) As Variant
+  Dim Temp As Variant
+  Dim i As Integer
+  Dim NoExchanges As Integer
+  Dim switch As Boolean
+
+  ' Loop until no more "exchanges" are made.
+  Do
+    NoExchanges = True
+    i = LBound(TempArray)
+    ' Loop through each element in the array.
+    For i = LBound(TempArray) To UBound(TempArray) - 1
+      ' If the next element isEmpty do not switch them
+      If IsEmpty(TempArray(i + 1)) Then
+        switch = False
+      ' If the element is greater than the element
+      ' following it, exchange the two elements.
+      ElseIf ASC = True Then
+        switch = TempArray(i) < TempArray(i + 1)
+      Else
+        switch = TempArray(i) > TempArray(i + 1)
+      End If
+      
+      If switch Then
+        NoExchanges = False
+        Temp = TempArray(i)
+        TempArray(i) = TempArray(i + 1)
+        TempArray(i + 1) = Temp
+      End If
+    Next i
+  Loop While Not (NoExchanges)
+  
+  BubbleSort = TempArray
+End Function
+
+Function KKLEINSTEG0(Bereich As Range, k As Integer, Optional nullGleich As Variant = 0)
+
+  Dim Zelle As Range
+  Dim i As Integer
+  Dim offset As Integer
+
+  Dim c As Integer
+  Dim valArray() As Variant
+  
+  c = Bereich.Cells.Count
+  ReDim valArray(c)
+  offset = LBound(valArray)
+  i = offset
+    
+  For Each Zelle In Bereich
+    If IsNumeric(Zelle.Value) And Zelle.Value > 0 Then
+      valArray(i) = Zelle.Value
+      i = i + 1
+    End If
+  Next Zelle
+
+  valArray = BubbleSort(valArray, False)
+  
+  KKLEINSTEG0 = valArray(k + offset - 1)
+  
+  If KKLEINSTEG0 = 0 Or KKLEINSTEG0 = "" Or IsEmpty(KKLEINSTEG0) Then
+    KKLEINSTEG0 = nullGleich
+  End If
+End Function

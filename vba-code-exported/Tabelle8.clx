@@ -9,10 +9,11 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub CommandButton1_Click()
 
-Mannschaftswertung_berechnen_2011
+Mannschaftswertung_berechnen_2011SBM
 
 End Sub
 
+' Besten 4 Punkte der jeweils Klassenbesten
 Sub Mannschaftswertung_berechnen_2009()
 
 Dim WB As Workbook
@@ -132,6 +133,7 @@ Next aktz
 End Sub
 
 ' New in 0.20
+' Durschnitt der Punkte aller Fahrer
 Sub Mannschaftswertung_berechnen_2010()
 
 Dim WS As Worksheet
@@ -232,7 +234,7 @@ For aktz = firstz To lastz
 Next aktz
 End Sub
 
-
+' Besten 4 Punkte je Verein
 Sub Mannschaftswertung_berechnen_2008()
 
 Dim WB As Workbook
@@ -370,7 +372,7 @@ MS.Range("A7:K6000").Sort Key1:=MS.Range("C7"), Order1:=xlDescending, Header:=xl
 
 End Sub
 
-
+' Besten 6 Punkte je Verein
 Sub Mannschaftswertung_berechnen_2011()
 
 Dim WB As Workbook
@@ -553,6 +555,130 @@ Next aktz
 End Sub
 
 
+' Besten 4 Punkte der jeweils Klassenbesten
+Sub Mannschaftswertung_berechnen_2011SBM()
 
+  Dim WB As Workbook
+  Dim WS As Worksheet
+  Dim MS As Worksheet
+  Dim Zelle As Range
+  Dim aktz As Integer
+  Dim firstz As Integer
+  Dim Verein As String
+  Dim ptk As Variant
+  Dim fak As String
+  Dim aktFa As String
+  Dim aktpt As Single
+  Dim fz
+  
+  Set WB = ThisWorkbook
+  Set MS = WB.Worksheets("Mannschaft")
+  Set WS = ActiveSheet
+  
+  
+  MS.Rows("7:6000").Delete
+  
+  'Holt Vereine
+  WB.Worksheets("Daten").Activate
+  
+  WB.Worksheets("Daten").Range("H:H").AdvancedFilter Action:=xlFilterCopy, CopyToRange:=WB.Worksheets("Daten").Range( _
+          "K1"), Unique:=True
+  WB.Worksheets("Daten").UsedRange.Columns("K").Rows.Cut (WB.Worksheets("Mannschaft").Range("B6"))
+  WS.Activate
+  'Ende Vereineholen
+  
+  With MS.Range("A6:M6").Borders(xlEdgeLeft)
+          .LineStyle = xlContinuous
+          .Weight = xlMedium
+          .ColorIndex = xlAutomatic
+  End With
+  With MS.Range("A6:M6").Borders(xlEdgeTop)
+          .LineStyle = xlContinuous
+          .Weight = xlMedium
+          .ColorIndex = xlAutomatic
+  End With
+  With MS.Range("A6:M6").Borders(xlEdgeBottom)
+          .LineStyle = xlContinuous
+          .Weight = xlMedium
+          .ColorIndex = xlAutomatic
+  End With
+  With MS.Range("A6:M6").Borders(xlEdgeRight)
+          .LineStyle = xlContinuous
+          .Weight = xlMedium
+          .ColorIndex = xlAutomatic
+  End With
+  
+  firstz = 7
+  aktz = 7
+  lastz = MS.UsedRange.Rows.Count
+  
+  For aktz = firstz To lastz
+      Verein = MS.Cells(aktz, 2).Value
+      If Verein <> "" Then
+          'Positionsanzeige
+          MS.Cells(aktz, 1).FormulaR1C1 = "=IF(ISTEXT(R[-1]C),1,IF(RC[2]=R[-1]C[2],R[-1]C,ROW()-6))"
+          'Punktesumme fuer die besten 3.
+          MS.Cells(aktz, 3).FormulaR1C1 = "=KKLEINSTEG0(RC[1]:RC[9],1)+KKLEINSTEG0(RC[1]:RC[9],2)+KKLEINSTEG0(RC[1]:RC[9],3)"
+          For Each WS In WB.Worksheets
+              ptk = ""
+              fak = "-"
+              If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Then
+                  For Each Zelle In WS.UsedRange.Columns(6).Rows("8:6000").Cells
+                      If Zelle.Value = Verein Then
+                          aktpt = Zelle.offset(0, -5).Value
+                          aktFa = Zelle.offset(0, -2).Value
+                          If ptk = "-" Then
+                            ptk = aktpt
+                            fak = aktFa
+                          ElseIf aktp <> 0 And aktpt <= ptk Then
+                              ptk = Application.WorksheetFunction.Round(aktpt, 0)
+                              fak = aktFa
+                          End If
+                      End If
+                  Next Zelle
+                  Select Case WS.Name
+                      Case "Klasse 1"
+                          MS.Cells(aktz, 6).Value = ptk
+                          MS.Cells(aktz, 7).Value = fak
+                      Case "Klasse 2"
+                          MS.Cells(aktz, 8).Value = ptk
+                          MS.Cells(aktz, 9).Value = fak
+                      Case "Klasse 3"
+                          MS.Cells(aktz, 10).Value = ptk
+                          MS.Cells(aktz, 11).Value = fak
+                      Case "Klasse 4"
+                          MS.Cells(aktz, 12).Value = ptk
+                          MS.Cells(aktz, 13).Value = fak
+                      Case "Klasse 5"
+                          MS.Cells(aktz, 14).Value = ptk
+                          MS.Cells(aktz, 15).Value = fak
+                  End Select
+              End If
+          Next WS
+          ' Formel um eine Zahl zu bilden, die die besten Platzierungen vergleicht. Dabei dürfen Plätze nicht die 99 übersteigen
+          MS.Cells(aktz, 4).FormulaR1C1 = "=POWER(10,8)*KKLEINSTEG0(RC[2]:RC[11],1,99)+POWER(10,6)*KKLEINSTEG0(RC[2]:RC[11],2,99)+POWER(10,4)*KKLEINSTEG0(RC[2]:RC[11],3,99)+POWER(10,2)*KKLEINSTEG0(RC[2]:RC[11],4,99)+KKLEINSTEG0(RC[2]:RC[11],5,99)"
+          MS.Cells(aktz, 5).FormularR1C1 = "=IF(KKLEINSTEG0(RC[1]:RC[10],3) > 0, 1, 0)"
+          With MS.Columns("A:M").Rows(aktz).Borders(xlEdgeBottom)
+              .LineStyle = xlContinuous
+              .Weight = xlThin
+              .ColorIndex = xlAutomatic
+          End With
+          
+      End If
+  Next aktz
+  
+  MS.Columns(4).Hidden = True
+  
+  MS.Range("A7:M6000").Sort Key1:=MS.Range("E7"), Order1:=xlDescending, Key2:=MS.Range("C7"), Order2:=xlAscending, Key3:=MS.Range("D7"), Order3:=xlAscending, Header:=xlNo, _
+          OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
+  
+  'Leere Zeilen ausblenden
+  For aktz = firstz To lastz
+      Verein = MS.Cells(aktz, 2).Value
+      If Verein <> "" And MS.Cells(aktz, 3).Value = 0 Then
+          MS.Rows(aktz).Hidden = True
+      End If
+  Next aktz
 
+End Sub
 

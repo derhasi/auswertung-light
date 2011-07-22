@@ -379,15 +379,15 @@ End Sub
 ' Holt eine Wert aus einer Zelle, mit einem von Zwei formaten
 ' und gibt es als Dezimalzahl zurück
 ' new in 20a
-Function ZeitImportHoleZeit(r As Range, format As Integer) As Currency
+Function ZeitImportHoleZeit(R As Range, format As Integer) As Currency
     
     Select Case format
         ' Dezimal
         Case 0
-          ZeitImportHoleZeit = Round(r.Value, 2)
+          ZeitImportHoleZeit = Round(R.Value, 2)
         ' Zeit
         Case 1
-          ZeitImportHoleZeit = Round(r.Value * 86400, 2)
+          ZeitImportHoleZeit = Round(R.Value * 86400, 2)
     End Select
 
 End Function

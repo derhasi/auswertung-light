@@ -57,15 +57,15 @@ Private Sub CB_DatenExport_Click()
   Dim ES As Worksheet
   Set ES = ThisWorkbook.Worksheets("Einstellungen")
   
-  Dim temp As Variant ' ergebnis der klassenabfrage
+  Dim Temp As Variant ' ergebnis der klassenabfrage
   Dim WK As Worksheet ' Worksheet der Klasse
 
   ' Klasse auswählen
-  temp = InputBox("Geben sie die Laufnummer für die importierten Daten an, damit eine korrekte Zuteilung möglich wird!", "Laufnummer für Zuteilung", 0)
+  Temp = InputBox("Geben sie die Laufnummer für die importierten Daten an, damit eine korrekte Zuteilung möglich wird!", "Laufnummer für Zuteilung", 0)
     
-  If IsNumeric(temp) And temp >= 1 And temp <= 5 Then
-      Laufnr = Round(temp, 0)
-      Set WK = ThisWorkbook.Worksheets("Klasse " & temp)
+  If IsNumeric(Temp) And Temp >= 1 And Temp <= 5 Then
+      Laufnr = Round(Temp, 0)
+      Set WK = ThisWorkbook.Worksheets("Klasse " & Temp)
   Else
       MsgBox "Falsche Eingabe der Klasse! (muss zwischen 1 und 5 liegen)" & Chr(10) & Chr(10) & "Export wird abgebrochen", vbCritical, "Falsche Eingabe der Klasse"
       Exit Sub
