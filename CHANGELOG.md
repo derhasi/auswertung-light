@@ -1,29 +1,37 @@
-Versionsänderungen:
+# VersionsÃ¤nderungen
+
+v0.22 (12.05.2012)
+
+* Anpassungen in einigen Beschreibungen
+
+v0.21a (20.05.2011)
+
+* Anpassung Formatierung Mannschaftswertung
 
 v0.21 (14.05.2011)
 
-* Mannschaftswertung für 2011
+* Mannschaftswertung fÃ¼r 2011
 * Fehler bei fehlender Symbolleiste behoben _Switch_Commandbars_
 
-v0.20b (15.06.2010) - nich veröffentlicht
+v0.20b (15.06.2010) - nich verÃ¶ffentlicht
 
-* weitere Vorbereitungen für den Datenexport
+* weitere Vorbereitungen fÃ¼r den Datenexport
 
-v0.20a (30.05.2010) - nicht veröffentlicht
+v0.20a (30.05.2010) - nicht verÃ¶ffentlicht
 
 * Einstellung zum Wechsel des Datumimportformats (Dezimal vs. Datum) _ZeitImportHoleZeit_
 
 v0.20 (24.04.2010)
 
-* Mannschaftswertung für Saison 2010 angepasst
-* Vorbereitung für Daten-/Urkundenexport getroffen (folgt in 0.20a)
+* Mannschaftswertung fÃ¼r Saison 2010 angepasst
+* Vorbereitung fÃ¼r Daten-/Urkundenexport getroffen (folgt in 0.20a)
 
 v0.19d (25.05.2009)
 
-* Hinzufügen einer Zeitimportfunktion
-* Hinzufügen einer Sortierfunktion in der "Daten"-Tabelle
+* HinzufÃ¼gen einer Zeitimportfunktion
+* HinzufÃ¼ggen einer Sortierfunktion in der "Daten"-Tabelle
 * Markierung gestarteter Fahrer in "Daten"-Tabelle
-* Menüleiste angepasst
+* MenÃ¼leiste angepasst
 
 v0.19c (20.05.2009)
 
@@ -36,19 +44,19 @@ v0.19b (04.05.2009)
 
 v0.19a (01.05.2009)
 
-* Automatisiertes einfügen von Header-Logos
-* ADAC- und Zugspitzpokal-Logo eingefügt
+* Automatisiertes einfÃ¼gen von Header-Logos
+* ADAC- und Zugspitzpokal-Logo eingefÃ¼gt
 
 v0.19 (01.05.2009)
 
-* Anpassung an neues Datenformat (ohne Straßenangabe - mit Rookiejahr)
+* Anpassung an neues Datenformat (ohne StraÃŸenangabe - mit Rookiejahr)
 * Markierung der Rookies (mit grau hinterlegter Klasse)
 
 v0.18a (09.06.2008)
 
 * Leeren der Standarddaten, damit aktuelle CSV importiert werden muss
-* Markierung bei Änderung der 'Daten' nach Import
-* Übersicht der Tastenkürzel unter Hilfe
+* Markierung bei Ã„nderung der 'Daten' nach Import
+* Ãœbersicht der TastenkÃ¼rzel unter Hilfe
 * Entfernen des blinden ZP-Output-Buttons im Arbeitsblatt
 
 v0.18 (27.05.2008)
@@ -57,14 +65,14 @@ v0.18 (27.05.2008)
 
 v0.17a (02.02.2008)
 
-* Formatanpassung für den CSV-Import
+* Formatanpassung fÃ¼r den CSV-Import
 
 v0.17 (26.01.2008)
 
-* Import für die CSV-Fahrerdaten von Zugspitzpokal.de
-* Menüleiste mit hilfreichen Buttons
-* Automatisches Ausblenden aller Menüleisten zur besseren Übersicht
-* Automatisches Wiederherstellen aller ausgeblendeten Menüleisten nach Programmbeendigung
+* Import fÃ¼r die CSV-Fahrerdaten von Zugspitzpokal.de
+* MenÃ¼leiste mit hilfreichen Buttons
+* Automatisches Ausblenden aller MenÃ¼leisten zur besseren Ãœbersicht
+* Automatisches Wiederherstellen aller ausgeblendeten MenÃ¼leisten nach Programmbeendigung
 
 v0.16a (22.05.2007)
 
