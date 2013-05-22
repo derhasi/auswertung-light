@@ -1,11 +1,7 @@
 # Auswertung Light
 
-English
-=======
-Documentation of all other parts of Code will be held in German, as this tool is intended to serve German Kart-Slalom Clubs. Further information can be fetched at zugspitzpokal.de
+*English*: Documentation of all other parts of Code will be held in German, as this tool is intended to serve German Kart-Slalom Clubs. Further information can be fetched at zugspitzpokal.de
 
-Deutsch
-=======
 Auswertung-Light ist eine Excel-Arbeitsmappe die im Laufe der Jahre durch Implementierung von VBA-Scripten zu einem umfangreicheren Auswertprogramm für den Kart-Slalom geworden ist.
 
 Das Programm enthält folgende Features:
