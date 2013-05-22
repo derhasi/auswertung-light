@@ -1,8 +1,10 @@
 # Auswertung Light
 
-*English*: Documentation of all other parts of Code will be held in German, as this tool is intended to serve German Kart-Slalom Clubs. Further information can be fetched at zugspitzpokal.de
+**English**: Documentation of all other parts of Code will be held in German, as this tool is intended to serve German Kart-Slalom Clubs. Further information can be fetched at zugspitzpokal.de
 
 Auswertung-Light ist eine Excel-Arbeitsmappe die im Laufe der Jahre durch Implementierung von VBA-Scripten zu einem umfangreicheren Auswertprogramm für den Kart-Slalom geworden ist.
+
+## Features
 
 Das Programm enthält folgende Features:
 * automatische Eintragung der Fahrerdaten über die Eingabe der Fahrerlizenz aus dazugehöriger Fahrerdatentabelle
@@ -23,3 +25,20 @@ Das Programm enthält folgende Features:
 * --GEPLANT Datenexport mit Bildimplementierungsmöglickeit (initiiert vom MC Dießen)--
 
 ![Screenshot menu](http://www.zugspitzpokal.de/sites/default/files/auswertung_light_v017_menubar.png)
+
+### Integrierte Fahrerdatenbank
+
+Ab der Version 0.17 wurde eine Fahrerdaten-Importfunktion eingebaut. Diese liest die Zugspitzpokal-Fahrerliste ein, welche automatisch auf zugspitzpokal.de generiert wird. 
+Diese Fahrerliste ist als CSV-Download für angemeldete Nutzer (Datenpfleger) stets aktuell* verfügbar.
+
+_*Sie wird von den Verantwortlichen der Vereine gepflegt_
+
+## Team:
+
+Hauptprogramm: [Johannes Haseitl](http://derhasi.de)
+Weitere Hilfe: Michael Steinhoff(Zahlenformat: deutsch/englisch), Dieter Schweingruber (Testing, MC Dießen)
+
+## Fragen und Antworten
+
+Bei Fragen zum Programm wendet euch bitte an das Team oder hinterlasst einen Kommentar im Issue-Bereich auf https://github.com/derhasi/auswertung-light/issues.
+
