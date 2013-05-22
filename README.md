@@ -42,3 +42,6 @@ Weitere Hilfe: Michael Steinhoff(Zahlenformat: deutsch/englisch), Dieter Schwein
 
 Bei Fragen zum Programm wendet euch bitte an das Team oder hinterlasst einen Kommentar im Issue-Bereich auf https://github.com/derhasi/auswertung-light/issues.
 
+## Versionsänderungen
+
+Unter https://github.com/derhasi/auswertung-light/blob/master/CHANGELOG.md ist die Liste der Ängerungen ein zu sehen.
