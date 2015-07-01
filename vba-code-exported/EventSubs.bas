@@ -464,7 +464,7 @@ Sub ExportCode()
    Dim m As Object, i As Integer
    Dim ExportPath As String
    
-   ExportPath = "c:\Users\haseitl\Dropbox\Zugspitzpokal\Auswertung\git\vba-code-exported\"
+   ExportPath = ThisWorkbook.Path & "\vba-code-exported\"
    With ActiveWorkbook.VBProject
       For i = 1 To .VBComponents.Count
          Set m = .VBComponents(i)
