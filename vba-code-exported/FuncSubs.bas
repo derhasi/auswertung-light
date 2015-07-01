@@ -51,7 +51,7 @@ Attribute DeleteZeile.VB_ProcData.VB_Invoke_Func = "l\n14"
 
   WSName = Selection.Parent.Name
     
-  If WSName = "Klasse 1" Or WSName = "Klasse 2" Or WSName = "Klasse 3" Or WSName = "Klasse 4" Or WSName = "Klasse 5" Then
+  If WSName = "Klasse 1" Or WSName = "Klasse 2" Or WSName = "Klasse 3" Or WSName = "Klasse 4" Or WSName = "Klasse 5" Or WSName = "Klasse 6" Then
     If Selection.Row > 7 Then
       Selection.EntireRow.Delete
     End If

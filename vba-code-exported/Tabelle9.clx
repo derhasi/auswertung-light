@@ -32,7 +32,7 @@ ZO.Cells.Clear
 
 
 For Each WS In WB.Worksheets
-  If (WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5") And WS.UsedRange.Rows.Count >= 8 Then
+  If (WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Klasse 6") And WS.UsedRange.Rows.Count >= 8 Then
     For i = 8 To WS.UsedRange.Rows.Count
       Set ZORow = ZO.Cells.Rows(aktz)
       Set WSRow = WS.UsedRange.Rows(i)

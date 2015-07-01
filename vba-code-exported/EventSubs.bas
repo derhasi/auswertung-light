@@ -219,7 +219,7 @@ End Sub
 Sub Ergebnis_berechnen()
 
     Select Case ActiveSheet.Name
-        Case "Klasse 1" To "Klasse 5"
+        Case "Klasse 1" To "Klasse 6"
                 Run "CB1_Click", ActiveSheet
         Case "Manschaft"
                 Tabelle8.Mannschaftswertung_berechnen
@@ -232,7 +232,7 @@ End Sub
 Sub Sortieren_nach_Startnummer()
 
     Select Case ActiveSheet.Name
-        Case "Klasse 1" To "Klasse 5"
+        Case "Klasse 1" To "Klasse 6"
                 Run "CB2_Click", ActiveSheet
         Case Else
                 
@@ -301,6 +301,13 @@ Sub Zeit_Importieren(Optional t As Integer = -1)
           sourceValCol = ThisWorkbook.Worksheets("Einstellungen").Range("L48").Value
           sourceIDCol = ThisWorkbook.Worksheets("Einstellungen").Range("L49").Value
           format = ThisWorkbook.Worksheets("Einstellungen").Range("L50").Value
+          
+      Case "Klasse 6"
+          sourceFile = ThisWorkbook.Worksheets("Einstellungen").Range("P46").Value
+          sourceSheetName = ThisWorkbook.Worksheets("Einstellungen").Range("P47").Value
+          sourceValCol = ThisWorkbook.Worksheets("Einstellungen").Range("P48").Value
+          sourceIDCol = ThisWorkbook.Worksheets("Einstellungen").Range("P49").Value
+          format = ThisWorkbook.Worksheets("Einstellungen").Range("P50").Value
           
   End Select
   

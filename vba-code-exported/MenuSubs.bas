@@ -14,6 +14,9 @@ End Sub
 Sub Klasse5()
 Tabelle6.Activate
 End Sub
+Sub Klasse6()
+Tabelle11.Activate
+End Sub
 Sub Mannschaft()
 Tabelle8.Activate
 End Sub
@@ -57,7 +60,7 @@ End Sub
 
 '''New in 19d
 Function versionNr() As String
-  versionNr = "0.22"
+  versionNr = "0.23"
 End Function
 
 '''New in 20

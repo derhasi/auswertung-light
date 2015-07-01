@@ -146,7 +146,7 @@ Weiter:
       Application.EnableEvents = False
       
       For Each WS In WB.Worksheets
-        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
+        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Klasse 6" Or WS.Name = "Mannschaft" Then
           sourceP.Copy
           FuncSubs.ShapeEntfernen Name, WS
           Application.GoTo WS.Range("A1")
@@ -170,7 +170,7 @@ Weiter:
   Else
       Application.EnableEvents = False
       For Each WS In WB.Worksheets
-        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Mannschaft" Then
+        If WS.Name = "Klasse 1" Or WS.Name = "Klasse 2" Or WS.Name = "Klasse 3" Or WS.Name = "Klasse 4" Or WS.Name = "Klasse 5" Or WS.Name = "Klasse 6" Or WS.Name = "Mannschaft" Then
           FuncSubs.ShapeEntfernen Name, WS
         End If
       Next WS

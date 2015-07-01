@@ -132,6 +132,11 @@ Sub Add_CommandBar()
                     .OnAction = "MenuSubs.Klasse5"
                 End With
                 With .Controls.Add
+                    .FaceId = 76
+                    .Caption = "Klasse&6"
+                    .OnAction = "MenuSubs.Klasse6"
+                End With
+                With .Controls.Add
                     .BeginGroup = True
                     .FaceId = 92
                     .Caption = "&Mannschaft"
