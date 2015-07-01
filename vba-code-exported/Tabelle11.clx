@@ -8,11 +8,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Private Sub CommandButton1_Click()
-    Run "EventSubs.CB1_Click", Tabelle6
+    Run "EventSubs.CB1_Click", Tabelle11
 End Sub
 
 Private Sub CommandButton2_Click()
-    Run "EventSubs.CB2_Click", Tabelle6
+    Run "EventSubs.CB2_Click", Tabelle11
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)

@@ -351,7 +351,7 @@ On Error Resume Next
 Set AL_CB = Application.CommandBars("ZP Auswertung Light")
 
 Select Case SheetName
-    Case "Klasse 1" To "Klasse 5"
+    Case "Klasse 1" To "Klasse 6"
            On Error Resume Next
             AL_CB.Controls("Ergebnis berechnen").Enabled = True
             AL_CB.Controls("Sortieren nach Startnummer").Enabled = True
