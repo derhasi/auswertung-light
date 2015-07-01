@@ -1,5 +1,9 @@
 # Versionsänderungen
 
+v0.23 (01.07.2015)
+
+* Hinzufügen Klasse 6
+
 v0.22 (12.05.2012)
 
 * Anpassungen in einigen Beschreibungen
