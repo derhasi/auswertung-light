@@ -28,10 +28,22 @@ Das Programm enthält folgende Features:
 
 ### Integrierte Fahrerdatenbank
 
-Ab der Version 0.17 wurde eine Fahrerdaten-Importfunktion eingebaut. Diese liest die Zugspitzpokal-Fahrerliste ein, welche automatisch auf zugspitzpokal.de generiert wird. 
-Diese Fahrerliste ist als CSV-Download für angemeldete Nutzer (Datenpfleger) stets aktuell* verfügbar.
+Ab der Version 0.17 wurde eine Fahrerdaten-Importfunktion eingebaut. Diese liest die Zugspitzpokal-Fahrerliste ein, welche automatisch auf zugspitzpokal.de generiert wird.
+Diese Fahrerliste ist als CSV-Download für angemeldete Nutzer (Datenpfleger) stets aktuell* verfügbar. _*Sie wird von den Verantwortlichen der Vereine gepflegt_
 
-_*Sie wird von den Verantwortlichen der Vereine gepflegt_
+Andere Runden können die [Beispiel-CSV](daten-beispiel.csv) als Vorlage für den Import benutzen.
+
+Die Datei umfasst folgende Spalten in dieser Reihenfolge:
+
+* **ID**: Eindeutige ID (Lizenznummer) die den Fahrer identifiziert
+* **Klasse**: K1, K2, ...
+* **Nachname**
+* **Vorname**
+* **Rookie**: Jahr in dem als Rookie gewerteet: `2016`
+* **PLZ**
+* **Wohnort**
+* **Verein**: Name des Vereins - notwendig für Mannschaftswertung - Muss bei jedem Teilnehmer gleich geschrieben sein
+* **Geburtsdatum**: im Format DD.MM.YYYY
 
 ## Team:
 
