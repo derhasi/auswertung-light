@@ -24,7 +24,7 @@ Das Programm enthält folgende Features:
 * Sortierung der Datentabelle nach Lizenz, Name oder Klasse
 * --GEPLANT Datenexport mit Bildimplementierungsmöglickeit (initiiert vom MC Dießen)--
 
-![Screenshot menu](http://www.zugspitzpokal.de/sites/default/files/auswertung_light_v017_menubar.png)
+![Screenhost Menu Bar](auswertung_light_v017_menubar.png)
 
 ### Integrierte Fahrerdatenbank
 
