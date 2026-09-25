@@ -68,6 +68,9 @@ der Workflow *Build* in GitHub Actions:
 
 - bei jedem Push auf `v2` als Artefakte am jeweiligen Workflow-Lauf (Actions → Build → Lauf → *Artifacts*)
 - bei einem Versions-Tag (`v2.0.0`) zusätzlich als Entwurf unter *Releases*
+- oder per Hand: *Actions → Build → Run workflow*, Branch wählen und unter „Release-Tag" z. B. `v2.0.0`
+  eintragen. Es entsteht ein Release-Entwurf für den aktuellen Stand des Branches; den Tag legt GitHub an,
+  sobald der Entwurf veröffentlicht wird.
 
 Die Pakete sind nicht signiert. Windows (SmartScreen) und macOS (Gatekeeper) warnen deshalb beim ersten Start.
 
