@@ -36,6 +36,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "wix": {
+        "language": "de-DE"
+      },
+      "nsis": {
+        "languages": [
+          "German"
+        ],
+        "displayLanguageSelector": false
+      }
+    }
   }
 }
