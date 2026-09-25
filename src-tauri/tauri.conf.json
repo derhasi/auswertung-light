@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Auswertung Light",
+  "version": "2.0.0",
+  "identifier": "de.zugspitzpokal.auswertung-light",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Auswertung Light",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 640
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Sports",
+    "shortDescription": "Auswertprogramm für den Kart-Slalom",
+    "longDescription": "Nennung, Zeiterfassung, Ergebnislisten, Mannschaftswertung und ZP-Export für Kart-Slalom-Veranstaltungen.",
+    "copyright": "Johannes Haseitl und Mitwirkende",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
