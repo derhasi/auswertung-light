@@ -40,12 +40,21 @@ jobs:
             echo "::error::Ungültiger Release-Tag „$RELEASE_TAG“ (erwartet z. B. v2.0.0)"
             exit 1
           fi
+          # Vorhandenen Entwurf für diesen Tag wiederverwenden (z. B. bei erneutem Lauf)
           id=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$RELEASE_TAG\") | .id" | head -n1)
+          if [ -n "$id" ]; then
+            # Entwurf auf den aktuellen Commit umstellen
+            gh api -X PATCH "repos/$GH_REPO/releases/$id" -f target_commitish="$GITHUB_SHA" --jq .id > /dev/null
+          else
+            id=$(gh api -X POST "repos/$GH_REPO/releases" \
+              -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" \
+              -f name="Auswertung Light $RELEASE_TAG" \
+              -f body="Installationspakete für Windows, macOS und Linux. Änderungen siehe CHANGELOG.md. Die Pakete sind nicht signiert." \
+              -F draft=true --jq .id)
+          fi
           if [ -z "$id" ]; then
-            gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" \
-              --title "Auswertung Light $RELEASE_TAG" \
-              --notes "Installationspakete für Windows, macOS und Linux. Änderungen siehe CHANGELOG.md. Die Pakete sind nicht signiert."
-            id=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$RELEASE_TAG\") | .id" | head -n1)
+            echo "::error::Release-Entwurf konnte nicht angelegt werden"
+            exit 1
           fi
           echo "Release-ID: $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
