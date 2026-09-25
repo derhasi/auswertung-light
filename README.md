@@ -63,9 +63,13 @@ Die Veranstaltungs-ID wird unter *Drucken & Export* oder in den Einstellungen de
 
 ## Installation
 
-Installationsdateien für Windows (`.msi`/`.exe`), macOS (`.dmg`) und Linux (`.deb`/`.AppImage`) entstehen
-automatisch in GitHub Actions, sobald ein Versions-Tag (`v2.0.0`) gepusht wird. Sie liegen dann als Entwurf
-unter *Releases*.
+Installationsdateien für Windows (`.msi`/`.exe`), macOS (`.dmg`) und Linux (`.deb`/`.rpm`/`.AppImage`) baut
+der Workflow *Build* in GitHub Actions:
+
+- bei jedem Push auf `v2` als Artefakte am jeweiligen Workflow-Lauf (Actions → Build → Lauf → *Artifacts*)
+- bei einem Versions-Tag (`v2.0.0`) zusätzlich als Entwurf unter *Releases*
+
+Die Pakete sind nicht signiert. Windows (SmartScreen) und macOS (Gatekeeper) warnen deshalb beim ersten Start.
 
 Die Daten liegen in der SQLite-Datei `auswertung-light.db` im App-Datenverzeichnis, unter Windows
 `%APPDATA%\de.zugspitzpokal.auswertung-light`. Für einen Rechnerwechsel am besten die Veranstaltung unter

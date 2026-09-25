@@ -5,16 +5,19 @@ on:
     branches: [master, v2]
   pull_request:
 
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: pnpm
+      # pnpm in der Version aus package.json („packageManager") über Corepack
+      - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm test
@@ -23,15 +26,18 @@ jobs:
   tauri:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Systempakete für Tauri
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
       - name: Platzhalter für das Frontend
         run: mkdir -p build && echo '<!doctype html>' > build/index.html
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings

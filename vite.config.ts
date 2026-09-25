@@ -14,6 +14,12 @@ export default defineConfig({
 		hmr: host ? { protocol: 'ws', host, port: 1421 } : undefined,
 		watch: { ignored: ['**/src-tauri/**'] }
 	},
+	build: {
+		rolldownOptions: {
+			// Der Hinweis zu Plugin-Laufzeiten betrifft SvelteKits eigenen Build-Schritt und ist nicht behebbar.
+			checks: { bundlerTimings: false }
+		}
+	},
 	test: {
 		include: ['src/**/*.test.ts'],
 		environment: 'node'

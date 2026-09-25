@@ -1,0 +1,72 @@
+name: Build
+
+# Baut die Installationspakete für Windows, macOS und Linux.
+# - Push auf v2 (oder manueller Start): Pakete als Artefakte am Workflow-Lauf
+# - Tag wie v2.0.0: zusätzlich Entwurf eines Releases mit den Paketen
+on:
+  push:
+    branches: [v2]
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            name: windows
+            args: ''
+          - platform: macos-latest
+            name: macos
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            name: linux
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Systempakete für Tauri (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: corepack enable
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Ohne tagName wird nur gebaut, kein Release angelegt.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: 'Auswertung Light ${{ github.ref_name }}'
+          releaseBody: 'Installationspakete für Windows, macOS und Linux. Änderungen siehe CHANGELOG.md.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+      - uses: actions/upload-artifact@v5
+        with:
+          name: auswertung-light-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/**/release/bundle/msi/*.msi
+            src-tauri/target/**/release/bundle/nsis/*.exe
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/deb/*.deb
+            src-tauri/target/**/release/bundle/rpm/*.rpm
+            src-tauri/target/**/release/bundle/appimage/*.AppImage
