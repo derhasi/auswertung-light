@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # pnpm wird erst danach über Corepack aktiviert; der automatische pnpm-Cache würde sonst fehlschlagen.
+          package-manager-cache: false
       # pnpm in der Version aus package.json („packageManager") über Corepack
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
