@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from '@lucide/svelte';
-	import { ui } from './meldungen.svelte';
+	import { ui } from './ui-zustand.svelte';
 	import Dialog from './Dialog.svelte';
 
 	const stil = {

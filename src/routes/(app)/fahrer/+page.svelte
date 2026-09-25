@@ -5,7 +5,7 @@
 	import { FAHRER_CSV_KOPF, fahrerCsvZeile, formatDatum, parseDatum, parseFahrerCsv, type FahrerDaten } from '$lib/domain/fahrer-import';
 	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
 	import Dialog from '$lib/ui/Dialog.svelte';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 	import { CSV_FILTER, dateiOeffnen, dateiSpeichern } from '$lib/plattform';
 
 	type Sortierung = 'name' | 'lizenz' | 'klasse' | 'verein';

@@ -5,7 +5,7 @@
 	import { formatDatum } from '$lib/domain/fahrer-import';
 	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
 	import Dialog from '$lib/ui/Dialog.svelte';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 	import { dateiOeffnen, JSON_FILTER } from '$lib/plattform';
 	import { dekodiereText } from '$lib/domain/csv';
 

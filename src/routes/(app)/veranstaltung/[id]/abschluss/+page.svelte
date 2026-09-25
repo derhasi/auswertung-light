@@ -6,7 +6,7 @@
 	import { formatPunkte, formatZeit } from '$lib/domain/zahlen';
 	import { zpExportCsv } from '$lib/domain/zp-export';
 	import { CSV_FILTER, dateiSpeichern, JSON_FILTER } from '$lib/plattform';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 
 	let { data } = $props();
 	const s = $derived(data.store);

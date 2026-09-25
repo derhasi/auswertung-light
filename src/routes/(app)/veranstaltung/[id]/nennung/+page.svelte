@@ -4,7 +4,7 @@
 	import { repo, type Fahrer } from '$lib/db';
 	import type { Starter } from '$lib/domain/typen';
 	import FahrerSuche from '$lib/components/FahrerSuche.svelte';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 
 	let { data } = $props();
 	const s = $derived(data.store);

@@ -61,7 +61,7 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: auswertung-light-${{ matrix.name }}
           if-no-files-found: error

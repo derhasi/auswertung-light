@@ -7,7 +7,7 @@
 	import type { GemesseneZeit } from '$lib/domain/zeitquelle';
 	import { Zeitmessung } from '$lib/stores/zeitmessung.svelte';
 	import { istDesktop } from '$lib/plattform';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 
 	let { data } = $props();
 	const s = $derived(data.store);

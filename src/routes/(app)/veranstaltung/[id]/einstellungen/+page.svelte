@@ -7,7 +7,7 @@
 	import { leseZeitquelle, type GemesseneZeit, type ZeitquelleEinstellung } from '$lib/domain/zeitquelle';
 	import { veranstaltungVergessen } from '$lib/stores/veranstaltung.svelte';
 	import { bildAlsDataUrl, dateiLesen, dateiOeffnen, istDesktop, pfadWaehlen } from '$lib/plattform';
-	import { ui } from '$lib/ui/meldungen.svelte';
+	import { ui } from '$lib/ui/ui-zustand.svelte';
 
 	let { data } = $props();
 	const s = $derived(data.store);
