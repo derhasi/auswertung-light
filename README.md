@@ -72,7 +72,49 @@ der Workflow *Build* in GitHub Actions:
   eintragen. Es entsteht ein Release-Entwurf für den aktuellen Stand des Branches; den Tag legt GitHub an,
   sobald der Entwurf veröffentlicht wird.
 
-Die Pakete sind nicht signiert. Windows (SmartScreen) und macOS (Gatekeeper) warnen deshalb beim ersten Start.
+### Unsignierte Pakete trotzdem starten
+
+Die Installationspakete sind nicht mit einem kostenpflichtigen Entwickler-Zertifikat signiert. Windows und macOS
+warnen deshalb beim ersten Start. Die App funktioniert trotzdem ganz normal, die Freigabe ist nur einmal nötig.
+Pakete bitte nur von der [Releases-Seite dieses Repositorys](https://github.com/derhasi/auswertung-light/releases)
+herunterladen.
+
+#### Windows
+
+1. **Beim Herunterladen** (Edge/Chrome): Meldet der Browser „wird nicht häufig heruntergeladen“ oder
+   „könnte schädlich sein“, im Download-Bereich über **…** → **Behalten** (ggf. **Trotzdem behalten**) bestätigen.
+2. **Beim Start des Installers** (`…_x64-setup.exe` oder `…_x64_de-DE.msi`) erscheint
+   „Der Computer wurde durch Windows geschützt“ (SmartScreen):
+   auf **Weitere Informationen** klicken, dann **Trotzdem ausführen**.
+3. Falls die Schaltfläche fehlt: Rechtsklick auf die heruntergeladene Datei → **Eigenschaften** → unten bei
+   „Sicherheit“ **Zulassen** anhaken → **OK**, danach erneut starten.
+
+Nach der Installation startet die App ohne weitere Warnung.
+
+#### macOS
+
+1. Die `.dmg`-Datei öffnen und **Auswertung Light** in den Ordner **Programme** ziehen.
+2. Die App im Ordner **Programme** öffnen. macOS meldet, dass die App nicht geöffnet werden kann, weil der
+   Entwickler nicht verifiziert werden kann. Mit **Fertig** bzw. **OK** schließen (nicht „In den Papierkorb legen“).
+3. **Systemeinstellungen** → **Datenschutz & Sicherheit** öffnen, nach unten zum Abschnitt „Sicherheit“ scrollen
+   und bei „Auswertung Light wurde blockiert …“ auf **Dennoch öffnen** klicken. Mit dem Passwort bzw. Touch ID
+   bestätigen und im folgenden Dialog nochmals **Dennoch öffnen** wählen.
+   (Bis macOS 14 geht es auch kürzer: Rechtsklick auf die App → **Öffnen** → **Öffnen**.)
+
+Meldet macOS stattdessen **„Auswertung Light“ ist beschädigt und kann nicht geöffnet werden**, ist die App nicht
+defekt – macOS blockiert so unsignierte Apps aus dem Internet. Dann im **Terminal** einmalig die
+Download-Markierung entfernen und die App erneut öffnen:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Auswertung Light.app"
+```
+
+#### Linux
+
+Das `.deb`- bzw. `.rpm`-Paket wie gewohnt installieren. Ein `.AppImage` vorher ausführbar machen
+(`chmod +x "Auswertung Light_2.0.0_amd64.AppImage"`) und dann starten.
+
+### Daten
 
 Die Daten liegen in der SQLite-Datei `auswertung-light.db` im App-Datenverzeichnis, unter Windows
 `%APPDATA%\de.zugspitzpokal.auswertung-light`. Für einen Rechnerwechsel am besten die Veranstaltung unter
