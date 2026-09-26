@@ -40,11 +40,21 @@ jobs:
             echo "::error::Ungültiger Release-Tag „$RELEASE_TAG“ (erwartet z. B. v2.0.0)"
             exit 1
           fi
-          # Vorhandenen Entwurf für diesen Tag wiederverwenden (z. B. bei erneutem Lauf)
-          id=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$RELEASE_TAG\") | .id" | head -n1)
+          # Vorhandene Entwürfe für diesen Tag suchen – über Tag oder Namen, weil GitHub den Tag
+          # eines Entwurfs ohne existierenden Tag zeitweise als „untagged-…“ ausgibt.
+          mapfile -t entwuerfe < <(gh api "repos/$GH_REPO/releases?per_page=100" --jq \
+            "[.[] | select(.draft and (.tag_name == \"$RELEASE_TAG\" or .name == \"Auswertung Light $RELEASE_TAG\"))]
+             | sort_by(.created_at) | reverse | .[].id")
+          id="${entwuerfe[0]:-}"
+          # Ältere doppelte Entwürfe entfernen
+          for alt in "${entwuerfe[@]:1}"; do
+            echo "Entferne doppelten Entwurf $alt"
+            gh api -X DELETE "repos/$GH_REPO/releases/$alt"
+          done
           if [ -n "$id" ]; then
-            # Entwurf auf den aktuellen Commit umstellen
-            gh api -X PATCH "repos/$GH_REPO/releases/$id" -f target_commitish="$GITHUB_SHA" --jq .id > /dev/null
+            # Entwurf auf den aktuellen Commit und den gewünschten Tag stellen
+            gh api -X PATCH "repos/$GH_REPO/releases/$id" \
+              -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" --jq .id > /dev/null
           else
             id=$(gh api -X POST "repos/$GH_REPO/releases" \
               -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" \
