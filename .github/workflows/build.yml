@@ -49,7 +49,7 @@ jobs:
             id=$(gh api -X POST "repos/$GH_REPO/releases" \
               -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" \
               -f name="Auswertung Light $RELEASE_TAG" \
-              -f body="Installationspakete für Windows, macOS und Linux. Änderungen siehe CHANGELOG.md. Die Pakete sind nicht signiert." \
+              -f body="Die Installationspakete werden gerade gebaut …" \
               -F draft=true --jq .id)
           fi
           if [ -z "$id" ]; then
@@ -115,3 +115,69 @@ jobs:
             src-tauri/target/**/release/bundle/deb/*.deb
             src-tauri/target/**/release/bundle/rpm/*.rpm
             src-tauri/target/**/release/bundle/appimage/*.AppImage
+
+  # Schreibt den Release-Text mit Download-Links je Betriebssystem – aus den
+  # tatsächlich angehängten Dateien, damit Namen und Links immer stimmen.
+  beschreibung:
+    needs: [release, build]
+    if: ${{ !cancelled() && needs.release.outputs.id != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_ID: ${{ needs.release.outputs.id }}
+    steps:
+      - name: Release-Text mit Download-Links schreiben
+        run: |
+          mapfile -t dateien < <(gh api "repos/$GH_REPO/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].name' | sort)
+
+          # Links auf den Tag, damit sie nach dem Veröffentlichen gültig sind
+          link() {
+            local url
+            url=$(jq -rn --arg s "$1" '$s|@uri')
+            printf '[%s](https://github.com/%s/releases/download/%s/%s)' "$1" "$GH_REPO" "$RELEASE_TAG" "$url"
+          }
+          abschnitt() { # Überschrift, dann Paare aus Endung und Beschreibung
+            local titel="$1"; shift
+            local zeilen=""
+            while [ $# -gt 0 ]; do
+              local endung="$1" text="$2"; shift 2
+              for d in "${dateien[@]}"; do
+                [[ "$d" == *"$endung" ]] && zeilen+="- $(link "$d") – $text"$'\n'
+              done
+            done
+            if [ -n "$zeilen" ]; then printf '### %s\n\n%s\n' "$titel" "$zeilen"; fi
+          }
+
+          anleitung="https://github.com/$GH_REPO/blob/$GITHUB_SHA/README.md#unsignierte-pakete-trotzdem-starten"
+          {
+            echo "## Download"
+            echo
+            echo "Bitte die passende Datei für das eigene Betriebssystem herunterladen:"
+            echo
+            abschnitt "Windows (10 und 11, 64 Bit)" \
+              "-setup.exe" "Installationsprogramm (empfohlen)" \
+              ".msi" "MSI-Paket, z. B. für die Verteilung auf mehrere Rechner"
+            abschnitt "macOS (Intel und Apple Silicon)" \
+              ".dmg" "Disk-Image: öffnen und die App in „Programme“ ziehen"
+            abschnitt "Linux (64 Bit)" \
+              ".deb" "Debian, Ubuntu, Linux Mint" \
+              ".rpm" "Fedora, openSUSE" \
+              ".AppImage" "alle Distributionen, ohne Installation (vorher ausführbar machen)"
+            echo "## Hinweis: nicht signierte Pakete"
+            echo
+            echo "Die Pakete sind nicht signiert. Windows (SmartScreen) und macOS (Gatekeeper) warnen deshalb beim ersten Start."
+            echo "Wie die App trotzdem gestartet wird, steht in der [Anleitung im README]($anleitung)."
+            echo
+            echo "Änderungen: siehe [CHANGELOG](https://github.com/$GH_REPO/blob/$GITHUB_SHA/CHANGELOG.md)."
+          } > text.md
+          cat text.md
+
+          if [ "${#dateien[@]}" -eq 0 ]; then
+            echo "::error::Am Release hängen keine Dateien"
+            exit 1
+          fi
+          jq -n --rawfile body text.md '{body: $body}' \
+            | gh api -X PATCH "repos/$GH_REPO/releases/$RELEASE_ID" --input - --jq .html_url
