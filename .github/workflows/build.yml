@@ -1,13 +1,13 @@
 name: Build
 
 # Baut die Installationspakete für Windows, macOS und Linux.
-# - Push auf main: Pakete als Artefakte am Workflow-Lauf
+# - Push auf main oder v2 (Testphase): Pakete als Artefakte am Workflow-Lauf
 # - Tag wie v2.0.0 gepusht: zusätzlich Release-Entwurf mit den Paketen
 # - Manueller Start mit „Release-Tag": Release-Entwurf für den gewählten Commit;
 #   GitHub legt den Tag an, sobald der Entwurf veröffentlicht wird
 on:
   push:
-    branches: [main]
+    branches: [main, v2]
     tags: ['v*']
   workflow_dispatch:
     inputs:
