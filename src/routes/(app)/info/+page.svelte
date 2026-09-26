@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
 	import { istDesktop } from '$lib/plattform';
-	import { VERSION } from '$lib/version';
+	import { BUILD_ZEIT, COMMIT, COMMIT_KURZ, VERSION } from '$lib/version';
 
 	const tasten = [
 		['Strg + 0 / 1 / 2', 'Erfassung: Training / Lauf 1 / Lauf 2 wählen'],
@@ -11,6 +11,8 @@
 		['Esc', 'Erfassung: Eingabe verwerfen'],
 		['↑ / ↓ und ↵', 'Nennung: Fahrer in der Suche auswählen']
 	];
+
+	const buildZeit = new Date(BUILD_ZEIT).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 </script>
 
 <Seitenkopf titel="Hilfe & Info" untertitel="Auswertung Light {VERSION} – Auswertprogramm für den Kart-Slalom" />
@@ -54,6 +56,14 @@
 
 	<section class="card p-6">
 		<h2 class="font-semibold">Über</h2>
+		<dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+			<dt class="text-muted">Version</dt>
+			<dd class="font-mono text-xs leading-5">{VERSION}</dd>
+			<dt class="text-muted">Commit</dt>
+			<dd class="font-mono text-xs leading-5 select-all" title={COMMIT}>{COMMIT_KURZ || 'unbekannt'}</dd>
+			<dt class="text-muted">Erstellt</dt>
+			<dd class="text-xs leading-5">{buildZeit}</dd>
+		</dl>
 		<p class="mt-3 text-sm text-muted">
 			Auswertung Light wurde als Excel-Arbeitsmappe von Johannes Haseitl (derhasi.de) für den Zugspitzpokal entwickelt – mit Unterstützung von Michael Steinhoff und Dieter Schweingruber
 			(MC Dießen). Version 2 ist eine Neuentwicklung als Desktop-App.
