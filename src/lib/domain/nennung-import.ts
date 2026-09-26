@@ -7,10 +7,13 @@
  *   bevor importiert werden kann. Beim Zusammenführen bleibt der alte Stand als Version erhalten.
  * - Nur bei Namensgleichheit (andere oder fehlende Lizenz) kann die Zeile stattdessen als
  *   anderer Fahrer neu angelegt werden – Lizenzen sind eindeutig.
+ * - Ist die Lizenz nur durch einen Tippfehler gleich, kann sie in der Nennliste korrigiert
+ *   werden; die Zeile wird danach mit der neuen Lizenz erneut abgeglichen.
+ * - Leere Felder der Nennliste werden ignoriert (der Datenbankwert bleibt).
  * - Fahrer ohne Treffer werden automatisch in die Datenbank übernommen.
  */
 import { fahrerUnterschiede, type FahrerDaten, type NennungsZeile, type VergleichsFeld } from './fahrer-import';
-import type { Klasse, Starter } from './typen';
+import { lizenzGueltig, type Klasse, type Starter } from './typen';
 
 export type ImportArt = 'neu' | 'bekannt' | 'konflikt' | 'bereits-gemeldet';
 export type KonfliktLoesung = 'zusammenfuehren' | 'neuer-fahrer';
@@ -39,6 +42,8 @@ export interface ImportPosten<F extends DbFahrer = DbFahrer> {
 	hinweis: string;
 	/** Hinweis zur Startnummer (z. B. gewünschte Nummer vergeben). */
 	nummerHinweis: string;
+	/** Ursprüngliche Lizenz aus der Datei, falls sie im Abgleich korrigiert wurde. */
+	lizenzVorher: string | null;
 }
 
 const nameSchluessel = (f: Pick<FahrerDaten, 'nachname' | 'vorname'>) =>
@@ -75,6 +80,55 @@ export function offeneFelder(p: ImportPosten): VergleichsFeld[] {
 	return p.unterschiede.filter((feld) => p.auswahl[feld] === undefined);
 }
 
+interface Suchindex<F extends DbFahrer> {
+	nachLizenz: Map<string, F>;
+	nachName: Map<string, F[]>;
+	gemeldeteLizenzen: Set<string>;
+	gemeldeteIds: Set<number>;
+}
+
+function suchindex<F extends DbFahrer>(datenbank: readonly F[], vorhandeneStarter: readonly Starter[]): Suchindex<F> {
+	const nachLizenz = new Map<string, F>();
+	const nachName = new Map<string, F[]>();
+	for (const f of datenbank) {
+		if (f.lizenz) nachLizenz.set(f.lizenz, f);
+		nachName.set(nameSchluessel(f), [...(nachName.get(nameSchluessel(f)) ?? []), f]);
+	}
+	return {
+		nachLizenz,
+		nachName,
+		gemeldeteLizenzen: new Set(vorhandeneStarter.map((s) => s.lizenz).filter(Boolean)),
+		gemeldeteIds: new Set(vorhandeneStarter.map((s) => s.fahrerId).filter((id): id is number => typeof id === 'number'))
+	};
+}
+
+function zeilePlanen<F extends DbFahrer>(zeile: NennungsZeile, index: Suchindex<F>, klasseId: number | null): ImportPosten<F> {
+	const perLizenz = zeile.lizenz ? index.nachLizenz.get(zeile.lizenz) : undefined;
+	const perName = index.nachName.get(nameSchluessel(zeile)) ?? [];
+	const treffer: Treffer | null = perLizenz ? 'lizenz' : perName.length ? 'name' : null;
+	const kandidaten = perLizenz ? [perLizenz] : perName;
+	// Bei mehreren Namensgleichen: den mit den wenigsten Abweichungen vergleichen
+	const bestand = [...kandidaten].sort((a, b) => fahrerUnterschiede(a, zeile).length - fahrerUnterschiede(b, zeile).length)[0] ?? null;
+	const gemeldet = (zeile.lizenz && index.gemeldeteLizenzen.has(zeile.lizenz)) || (bestand && index.gemeldeteIds.has(bestand.id));
+	const basis: ImportPosten<F> = {
+		zeile,
+		art: gemeldet ? 'bereits-gemeldet' : 'neu',
+		treffer,
+		kandidaten,
+		bestand: null,
+		unterschiede: [],
+		loesung: 'zusammenfuehren',
+		auswahl: {},
+		klasseId,
+		startnummer: null,
+		uebernehmen: !gemeldet && klasseId !== null,
+		hinweis: gemeldet ? 'Bereits gemeldet' : klasseId === null ? `Klasse „${zeile.klasse || '–'}“ unbekannt` : '',
+		nummerHinweis: '',
+		lizenzVorher: null
+	};
+	return mitBestandVergleichen(basis, bestand);
+}
+
 export function importPlanen<F extends DbFahrer>(
 	zeilen: readonly NennungsZeile[],
 	datenbank: readonly F[],
@@ -82,42 +136,32 @@ export function importPlanen<F extends DbFahrer>(
 	klassen: readonly Klasse[],
 	zielKlasseId: number | null
 ): ImportPosten<F>[] {
-	const nachLizenz = new Map<string, F>();
-	const nachName = new Map<string, F[]>();
-	for (const f of datenbank) {
-		if (f.lizenz) nachLizenz.set(f.lizenz, f);
-		nachName.set(nameSchluessel(f), [...(nachName.get(nameSchluessel(f)) ?? []), f]);
-	}
-	const gemeldeteLizenzen = new Set(vorhandeneStarter.map((s) => s.lizenz).filter(Boolean));
-	const gemeldeteIds = new Set(vorhandeneStarter.map((s) => s.fahrerId).filter((id): id is number => typeof id === 'number'));
-
-	const posten = zeilen.map((zeile) => {
-		const perLizenz = zeile.lizenz ? nachLizenz.get(zeile.lizenz) : undefined;
-		const perName = nachName.get(nameSchluessel(zeile)) ?? [];
-		const treffer: Treffer | null = perLizenz ? 'lizenz' : perName.length ? 'name' : null;
-		const kandidaten = perLizenz ? [perLizenz] : perName;
-		// Bei mehreren Namensgleichen: den mit den wenigsten Abweichungen vergleichen
-		const bestand = [...kandidaten].sort((a, b) => fahrerUnterschiede(a, zeile).length - fahrerUnterschiede(b, zeile).length)[0] ?? null;
-		const klasseId = zielKlasseId ?? klasseZuordnen(klassen, zeile.klasse);
-		const gemeldet = (zeile.lizenz && gemeldeteLizenzen.has(zeile.lizenz)) || (bestand && gemeldeteIds.has(bestand.id));
-		const basis: ImportPosten<F> = {
-			zeile,
-			art: gemeldet ? 'bereits-gemeldet' : 'neu',
-			treffer,
-			kandidaten,
-			bestand: null,
-			unterschiede: [],
-			loesung: 'zusammenfuehren',
-			auswahl: {},
-			klasseId,
-			startnummer: null,
-			uebernehmen: !gemeldet && klasseId !== null,
-			hinweis: gemeldet ? 'Bereits gemeldet' : klasseId === null ? `Klasse „${zeile.klasse || '–'}“ unbekannt` : '',
-			nummerHinweis: ''
-		};
-		return mitBestandVergleichen(basis, bestand);
-	});
+	const index = suchindex(datenbank, vorhandeneStarter);
+	const posten = zeilen.map((zeile) => zeilePlanen(zeile, index, zielKlasseId ?? klasseZuordnen(klassen, zeile.klasse)));
 	return startnummernVergeben(posten, vorhandeneStarter);
+}
+
+/**
+ * Korrigiert die Lizenz einer Zeile (z. B. Tippfehler in der Nennliste) und gleicht sie
+ * mit der neuen Lizenz erneut ab. Liefert die neue Postenliste oder einen Fehlertext.
+ */
+export function lizenzKorrigieren<F extends DbFahrer>(
+	posten: readonly ImportPosten<F>[],
+	position: number,
+	neueLizenz: string,
+	datenbank: readonly F[],
+	vorhandeneStarter: readonly Starter[]
+): ImportPosten<F>[] | string {
+	const lizenz = neueLizenz.trim();
+	const alt = posten[position];
+	if (lizenz && !lizenzGueltig(lizenz)) return 'Die Lizenz darf nur Buchstaben, Ziffern sowie - / _ enthalten.';
+	if (lizenz === alt.zeile.lizenz) return 'Die Lizenz ist unverändert.';
+	if (lizenz && posten.some((p, i) => i !== position && p.zeile.lizenz === lizenz)) return `Die Lizenz ${lizenz} kommt in der Nennliste bereits vor.`;
+	const neu = zeilePlanen({ ...alt.zeile, lizenz }, suchindex(datenbank, vorhandeneStarter), alt.klasseId);
+	neu.lizenzVorher = alt.lizenzVorher ?? alt.zeile.lizenz;
+	if (neu.art !== 'bereits-gemeldet') neu.uebernehmen = alt.uebernehmen || neu.klasseId !== null;
+	const liste = posten.map((p, i) => (i === position ? neu : p));
+	return startnummernVergeben(liste, vorhandeneStarter);
 }
 
 /**

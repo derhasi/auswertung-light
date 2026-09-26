@@ -5,6 +5,7 @@
 	import {
 		importPlanen,
 		konfliktGeloest,
+		lizenzKorrigieren,
 		mitBestandVergleichen,
 		offeneFelder,
 		startnummernVergeben,
@@ -34,6 +35,13 @@
 	let lesefehler = $state<string[]>([]);
 	let offenerKonflikt = $state<number | null>(null);
 	let laeuft = $state(false);
+	let korrekturLizenz = $state('');
+
+	$effect(() => {
+		// Beim Wechsel des geöffneten Konflikts das Korrekturfeld leeren
+		void offenerKonflikt;
+		korrekturLizenz = '';
+	});
 
 	$effect(() => {
 		if (!offen) {
@@ -117,6 +125,23 @@
 	function alsNeuerFahrer(i: number) {
 		posten[i].loesung = 'neuer-fahrer';
 		setTimeout(naechsterKonflikt, 150);
+	}
+
+	function lizenzAendern(i: number) {
+		const ergebnis = lizenzKorrigieren(posten, i, korrekturLizenz, datenbank, store.starter);
+		if (typeof ergebnis === 'string') return ui.melden(ergebnis, 'warnung');
+		posten = ergebnis;
+		korrekturLizenz = '';
+		const neu = posten[i];
+		ui.melden(
+			neu.art === 'neu'
+				? `Lizenz korrigiert – ${neu.zeile.vorname} ${neu.zeile.nachname} wird als neuer Fahrer angelegt.`
+				: neu.art === 'bekannt'
+					? `Lizenz korrigiert – passt zu einem vorhandenen Fahrer.`
+					: `Lizenz korrigiert – bitte den neuen Abgleich prüfen.`,
+			'info'
+		);
+		if (neu.art !== 'konflikt') setTimeout(naechsterKonflikt, 150);
 	}
 
 	function kandidatWaehlen(i: number, id: number) {
@@ -212,7 +237,10 @@
 								</td>
 								<td class="px-3 py-2">
 									<span class="font-medium">{p.zeile.nachname}, {p.zeile.vorname}</span>
-									<div class="font-mono text-xs text-muted">{p.zeile.lizenz || 'ohne Lizenz'}</div>
+									<div class="font-mono text-xs text-muted">
+										{p.zeile.lizenz || 'ohne Lizenz'}
+										{#if p.lizenzVorher !== null}<span class="font-sans text-info">(korrigiert, vorher {p.lizenzVorher || 'leer'})</span>{/if}
+									</div>
 								</td>
 								<td class="px-3 py-2 text-muted">{p.zeile.verein}</td>
 								<td class="px-3 py-2">
@@ -300,6 +328,16 @@
 												</button>
 											{/if}
 										</div>
+										<form
+											class="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2 text-sm"
+											onsubmit={(e) => (e.preventDefault(), lizenzAendern(i))}
+										>
+											<span class="text-muted">
+												{p.treffer === 'lizenz' ? 'Anderer Fahrer, Lizenz in der Nennliste vertippt?' : 'Lizenz in der Nennliste falsch?'}
+											</span>
+											<input class="input w-40 py-1 font-mono" placeholder={p.zeile.lizenz || 'Lizenz'} bind:value={korrekturLizenz} aria-label="Korrigierte Lizenz" />
+											<button class="btn btn-sm" type="submit" disabled={!korrekturLizenz.trim()}>Lizenz korrigieren &amp; neu abgleichen</button>
+										</form>
 										<p class="mt-2 text-xs text-muted">
 											{#if neuerFahrer}
 												Es wird ein eigener Fahrer mit den Daten der Nennliste angelegt{p.zeile.lizenz ? ` (Lizenz ${p.zeile.lizenz})` : ' (ohne Lizenz)'}.
@@ -307,7 +345,7 @@
 												Ergebnis: {ergebnis.nachname}, {ergebnis.vorname} · Lizenz {ergebnis.lizenz || '–'} · {ergebnis.verein} · {ergebnis.plz} {ergebnis.ort}. Der bisherige Stand bleibt als Version erhalten; frühere Veranstaltungen behalten ihre Version.
 											{:else}
 												Noch offen: {offeneFelder(p).map((f) => FELD_NAMEN[f]).join(', ')}.
-												{#if p.treffer === 'lizenz'}Da Lizenzen eindeutig sind, kann dieser Fahrer nur abgeglichen werden.{/if}
+												{#if p.treffer === 'lizenz'}Lizenzen sind eindeutig: entweder abgleichen oder – bei einem Tippfehler – die Lizenz korrigieren.{/if}
 											{/if}
 										</p>
 									</td>

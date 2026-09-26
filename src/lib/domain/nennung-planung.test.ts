@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FahrerDaten, NennungsZeile } from './fahrer-import';
-import { importPlanen, konfliktGeloest, offeneFelder, zusammengefuehrt, type DbFahrer } from './nennung-import';
+import { importPlanen, konfliktGeloest, lizenzKorrigieren, offeneFelder, zusammengefuehrt, type DbFahrer } from './nennung-import';
 import { starter } from './testdaten';
 import type { Klasse } from './typen';
 
@@ -100,5 +100,26 @@ describe('Nennungs-Import planen', () => {
 		const m = zusammengefuehrt({ ...p, auswahl: { verein: 'import', ort: 'bestand' } });
 		expect([m.verein, m.ort, m.lizenz]).toEqual(['MSC Neu', 'Musterstadt', 'B2']);
 		expect('id' in m).toBe(false);
+	});
+
+	it('ignoriert leere Felder der Nennliste', () => {
+		const [p] = importPlanen([zeile('A1', { verein: '', plz: '', ort: '' })], db, [], klassen, 1);
+		expect([p.art, p.unterschiede]).toEqual(['bekannt', []]);
+	});
+
+	it('korrigiert eine versehentlich gleiche Lizenz und gleicht neu ab', () => {
+		// Anderer Fahrer, aber per Tippfehler mit der Lizenz von Bauer (B2)
+		const plan = importPlanen([zeile('B2', { nachname: 'Zeller', vorname: 'Zoe' }), zeile('Q1', { nachname: 'Quast' })], db, [], klassen, 1);
+		expect([plan[0].art, plan[0].treffer]).toEqual(['konflikt', 'lizenz']);
+		const neu = lizenzKorrigieren(plan, 0, 'B20', db, []);
+		if (typeof neu === 'string') throw new Error(neu);
+		expect([neu[0].art, neu[0].zeile.lizenz, neu[0].lizenzVorher, neu[0].uebernehmen]).toEqual(['neu', 'B20', 'B2', true]);
+		// Korrektur auf die Lizenz eines anderen bekannten Fahrers → Abgleich mit diesem
+		const zuA1 = lizenzKorrigieren(plan, 0, 'A1', db, []);
+		if (typeof zuA1 === 'string') throw new Error(zuA1);
+		expect([zuA1[0].art, zuA1[0].bestand?.id]).toEqual(['konflikt', 10]);
+		// Ungültige oder doppelte Lizenz wird abgelehnt
+		expect(lizenzKorrigieren(plan, 0, 'B 2', db, [])).toContain('Buchstaben');
+		expect(lizenzKorrigieren(plan, 0, 'Q1', db, [])).toContain('bereits vor');
 	});
 });
