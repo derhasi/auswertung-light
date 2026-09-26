@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+
+/*
+ * Farbtokens – hell und dunkel. Die Utilities (bg-surface, text-muted …)
+ * verweisen auf CSS-Variablen, die im Dunkelmodus überschrieben werden.
+ */
+@theme {
+	--font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+	--font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+
+	--color-page: #f4f5f7;
+	--color-surface: #ffffff;
+	--color-sunken: #eef0f3;
+	--color-line: #dde1e7;
+	--color-fg: #151a23;
+	--color-muted: #5f6b7a;
+	--color-accent: #ea580c;
+	--color-accent-strong: #c2410c;
+	--color-accent-soft: #fff1e7;
+	--color-on-accent: #ffffff;
+	--color-ok: #15803d;
+	--color-ok-soft: #e7f6ec;
+	--color-warn: #b45309;
+	--color-warn-soft: #fdf3e1;
+	--color-danger: #b91c1c;
+	--color-danger-soft: #fdeaea;
+	--color-info: #1d4ed8;
+	--color-info-soft: #e8efff;
+	--color-nav: #0f172a;
+	--color-nav-fg: #cbd5e1;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-page: #0d1117;
+		--color-surface: #161b23;
+		--color-sunken: #1e2530;
+		--color-line: #2c3542;
+		--color-fg: #e6e9ee;
+		--color-muted: #97a3b3;
+		--color-accent: #fb923c;
+		--color-accent-strong: #fdba74;
+		--color-accent-soft: #3a2415;
+		--color-on-accent: #1a0e05;
+		--color-ok: #4ade80;
+		--color-ok-soft: #13301f;
+		--color-warn: #fbbf24;
+		--color-warn-soft: #362a10;
+		--color-danger: #f87171;
+		--color-danger-soft: #3b1717;
+		--color-info: #93b4ff;
+		--color-info-soft: #172444;
+		--color-nav: #090c12;
+		--color-nav-fg: #aab4c3;
+	}
+}
+
+@media print {
+	:root {
+		--color-page: #ffffff;
+		--color-surface: #ffffff;
+		--color-sunken: #f1f3f5;
+		--color-line: #c9ced6;
+		--color-fg: #000000;
+		--color-muted: #444c56;
+	}
+}
+
+@layer base {
+	html,
+	body {
+		background: var(--color-page);
+		color: var(--color-fg);
+		font-family: var(--font-sans);
+		-webkit-font-smoothing: antialiased;
+	}
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+	input[type='number']::-webkit-inner-spin-button {
+		opacity: 0.4;
+	}
+}
+
+@layer components {
+	.btn {
+		@apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium text-fg transition-colors select-none;
+		@apply hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-50;
+	}
+	.btn-primary {
+		@apply border-transparent bg-accent text-on-accent hover:bg-accent-strong;
+	}
+	.btn-danger {
+		@apply border-transparent bg-danger text-white hover:opacity-90;
+	}
+	.btn-ghost {
+		@apply border-transparent bg-transparent hover:bg-sunken;
+	}
+	.btn-sm {
+		@apply px-2.5 py-1.5 text-xs;
+	}
+	.btn-icon {
+		@apply p-2;
+	}
+	.input {
+		@apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted/70;
+		@apply focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25;
+	}
+	.label {
+		@apply mb-1 block text-xs font-semibold tracking-wide text-muted uppercase;
+	}
+	.card {
+		@apply rounded-xl border border-line bg-surface;
+	}
+	.badge {
+		@apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap;
+	}
+	.tabular {
+		font-variant-numeric: tabular-nums;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-fg;
+	}
+	.chip[aria-pressed='true'],
+	.chip[aria-current='page'] {
+		@apply border-accent bg-accent-soft text-accent-strong;
+	}
+}
