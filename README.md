@@ -66,7 +66,7 @@ Die Veranstaltungs-ID wird unter *Drucken & Export* oder in den Einstellungen de
 Installationsdateien für Windows (`.msi`/`.exe`), macOS (`.dmg`) und Linux (`.deb`/`.rpm`/`.AppImage`) baut
 der Workflow *Build* in GitHub Actions:
 
-- bei jedem Push auf `v2` als Artefakte am jeweiligen Workflow-Lauf (Actions → Build → Lauf → *Artifacts*)
+- bei jedem Push auf `main` als Artefakte am jeweiligen Workflow-Lauf (Actions → Build → Lauf → *Artifacts*)
 - bei einem Versions-Tag (`v2.0.0`) zusätzlich als Entwurf unter *Releases*
 - oder per Hand: *Actions → Build → Run workflow*, Branch wählen und unter „Release-Tag" z. B. `v2.0.0`
   eintragen. Es entsteht ein Release-Entwurf für den aktuellen Stand des Branches; den Tag legt GitHub an,
