@@ -85,4 +85,22 @@ describe('Klassenwertung', () => {
 		const w = klassenWertung([a, b], regeln, 2026);
 		expect(w.map((z) => z.rookie)).toEqual([true, false]);
 	});
+
+	it('führt DNS und DSQ ohne Platz und Punkte', () => {
+		const dns = { fehler1: 0, fehler2: 0, zeit: null, status: 'dns' as const, kommentar: 'Motorschaden' };
+		const dsq = { fehler1: 0, fehler2: 0, zeit: null, status: 'dsq' as const, kommentar: 'Frühstart' };
+		const a = starter({ startnummer: 1, laeufe: { 1: lauf(30), 2: dsq } });
+		const b = starter({ startnummer: 2, laeufe: { 1: dns, 2: lauf(30) } });
+		const c = starter({ startnummer: 3, laeufe: { 1: lauf(40), 2: lauf(40) } });
+		const d = starter({ startnummer: 4, laeufe: { 0: dns, 1: lauf(41), 2: lauf(41) } });
+		const w = klassenWertung([a, b, c, d], regeln);
+		expect(w.map((z) => [z.starter.startnummer, z.status, z.platz, z.punkte])).toEqual([
+			[3, 'gewertet', 1, wertungsPunkte(1, 4)],
+			[4, 'gewertet', 2, wertungsPunkte(2, 4)],
+			[2, 'nicht-gestartet', null, 0],
+			[1, 'disqualifiziert', null, 0]
+		]);
+		expect(w[3].ergebnisse[1]).toBe(30);
+		expect(w[3].ergebnisse[2]).toBeNull();
+	});
 });

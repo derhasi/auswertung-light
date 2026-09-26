@@ -30,6 +30,15 @@ describe('ZP-Export', () => {
 		expect(zpExportCsv('1', [{ klasse, zeilen }])).toContain('"Muster, Max"');
 	});
 
+	it('führt DNS/DSQ als nicht gewertet ohne Platz', () => {
+		const zeilen = klassenWertung(
+			[starter({ startnummer: 9, laeufe: { 1: lauf(30), 2: { fehler1: 0, fehler2: 0, zeit: null, status: 'dsq', kommentar: 'x' } } })],
+			{ strafe1: 2, strafe2: 10 }
+		);
+		const [z] = zpExportZeilen('1', [{ klasse, zeilen }]);
+		expect([z[5], z[14], z[16], z[17]]).toEqual(['0', '0', '', '0']);
+	});
+
 	it('ermittelt die Klassenziffer', () => {
 		expect(klassenZiffer({ kuerzel: 'K12', name: '' })).toBe('12');
 		expect(klassenZiffer({ kuerzel: '', name: 'Klasse 6' })).toBe('6');

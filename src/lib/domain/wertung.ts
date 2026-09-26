@@ -10,11 +10,22 @@
  *
  * Abweichend von Excel werden Fahrer ohne vollständige Wertungsläufe nicht
  * mehr (mit 0 s) vorne einsortiert, sondern als „unvollständig" ohne Platz geführt.
+ * Ist ein Wertungslauf als DSQ (disqualifiziert) oder DNS (nicht gestartet)
+ * gekennzeichnet, erhält der Fahrer ebenfalls keinen Platz und keine Punkte.
  */
 import { hundertstel, runde } from './zahlen';
-import type { LaufEingabe, LaufNr, Regeln, Starter } from './typen';
+import { laufErfasst, type LaufEingabe, type LaufNr, type Regeln, type Starter } from './typen';
 
-export type WertungsStatus = 'gewertet' | 'unvollstaendig' | 'ausser-wertung';
+export type WertungsStatus = 'gewertet' | 'unvollstaendig' | 'nicht-gestartet' | 'disqualifiziert' | 'ausser-wertung';
+
+/** Kurzbezeichnung für die Platz-Spalte, wenn kein Platz vergeben wird. */
+export const STATUS_KURZ: Record<WertungsStatus, string> = {
+	gewertet: '',
+	unvollstaendig: '–',
+	'nicht-gestartet': 'DNS',
+	disqualifiziert: 'DSQ',
+	'ausser-wertung': 'niW'
+};
 
 export interface WertungsZeile {
 	starter: Starter;
@@ -30,7 +41,7 @@ export interface WertungsZeile {
 }
 
 export function laufErgebnis(lauf: LaufEingabe | undefined, regeln: Pick<Regeln, 'strafe1' | 'strafe2'>): number | null {
-	if (!lauf || lauf.zeit === null || lauf.zeit === undefined) return null;
+	if (!lauf || (lauf.status ?? 'ok') !== 'ok' || lauf.zeit === null || lauf.zeit === undefined) return null;
 	return runde((lauf.fehler1 || 0) * regeln.strafe1 + (lauf.fehler2 || 0) * regeln.strafe2 + lauf.zeit);
 }
 
@@ -66,7 +77,16 @@ export function klassenWertung(
 		const bester = vollstaendig
 			? Math.min(ergebnisse[1]!, ergebnisse[2]!)
 			: (ergebnisse[1] ?? ergebnisse[2] ?? null);
-		const status: WertungsStatus = s.ausserWertung ? 'ausser-wertung' : vollstaendig ? 'gewertet' : 'unvollstaendig';
+		const wertungsStatus = [s.laeufe[1]?.status ?? 'ok', s.laeufe[2]?.status ?? 'ok'];
+		const status: WertungsStatus = s.ausserWertung
+			? 'ausser-wertung'
+			: wertungsStatus.includes('dsq')
+				? 'disqualifiziert'
+				: wertungsStatus.includes('dns')
+					? 'nicht-gestartet'
+					: vollstaendig
+						? 'gewertet'
+						: 'unvollstaendig';
 		return {
 			starter: s,
 			ergebnisse,
@@ -80,7 +100,13 @@ export function klassenWertung(
 		};
 	});
 
-	const rang: Record<WertungsStatus, number> = { gewertet: 0, unvollstaendig: 1, 'ausser-wertung': 2 };
+	const rang: Record<WertungsStatus, number> = {
+		gewertet: 0,
+		unvollstaendig: 1,
+		'nicht-gestartet': 2,
+		disqualifiziert: 3,
+		'ausser-wertung': 4
+	};
 	zeilen.sort((a, b) => {
 		if (a.status !== b.status) return rang[a.status] - rang[b.status];
 		if (a.status === 'gewertet') {
@@ -110,5 +136,5 @@ export function klassenWertung(
 
 /** Nächster offener Lauf eines Starters (für die Erfassung). */
 export function offeneLaeufe(s: Starter): LaufNr[] {
-	return ([0, 1, 2] as LaufNr[]).filter((nr) => s.laeufe[nr]?.zeit === null || s.laeufe[nr]?.zeit === undefined);
+	return ([0, 1, 2] as LaufNr[]).filter((nr) => !laufErfasst(s.laeufe[nr]));
 }

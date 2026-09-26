@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { Trash2, UserPlus, X } from '@lucide/svelte';
+	import { FileUp, Trash2, UserPlus, X } from '@lucide/svelte';
 	import { repo, type Fahrer } from '$lib/db';
-	import type { Starter } from '$lib/domain/typen';
+	import { lizenzGueltig, type Starter } from '$lib/domain/typen';
 	import FahrerSuche from '$lib/components/FahrerSuche.svelte';
+	import NennungImport from '$lib/components/NennungImport.svelte';
 	import { ui } from '$lib/ui/ui-zustand.svelte';
 
 	let { data } = $props();
@@ -12,6 +13,7 @@
 	let fahrer = $state<Fahrer[]>([]);
 	let suche: FahrerSuche | undefined = $state();
 	let nummerFeld: HTMLInputElement | undefined = $state();
+	let importOffen = $state(false);
 
 	interface Entwurf {
 		lizenz: string;
@@ -25,16 +27,21 @@
 		startnummer: number;
 		ausserWertung: boolean;
 		manuell: boolean;
+		/** Datensatz aus der Fahrerdatenbank (bei manueller Eingabe leer). */
+		fahrer: Fahrer | null;
+		/** Manuell erfasste Fahrer in die Datenbank übernehmen. */
+		inDatenbank: boolean;
 	}
 	let entwurf = $state<Entwurf | null>(null);
 
-	onMount(async () => {
+	async function fahrerLaden() {
 		try {
 			fahrer = await (await repo()).fahrerListe();
 		} catch (e) {
 			ui.fehler(e);
 		}
-	});
+	}
+	onMount(fahrerLaden);
 
 	const leer = $derived(s.klassen.filter((k) => !s.starter.some((st) => st.klasseId === k.id)));
 	const gemeldet = $derived(new Set(s.starter.map((st) => st.lizenz).filter(Boolean)));
@@ -58,7 +65,9 @@
 			klasseId,
 			startnummer: s.naechsteStartnummer(klasseId),
 			ausserWertung: false,
-			manuell: !f
+			manuell: !f,
+			fahrer: f,
+			inDatenbank: true
 		};
 		await tick();
 		nummerFeld?.select();
@@ -67,14 +76,29 @@
 	async function nennen(e: SubmitEvent) {
 		e.preventDefault();
 		if (!entwurf) return;
-		const { manuell: _m, ...d } = entwurf;
+		const { manuell, fahrer: dbFahrer, inDatenbank, ...d } = entwurf;
+		d.lizenz = d.lizenz.trim();
 		if (!d.nachname.trim()) return ui.melden('Bitte einen Namen angeben.', 'warnung');
+		if (manuell && d.lizenz && !lizenzGueltig(d.lizenz)) return ui.melden('Die Lizenz darf nur Buchstaben, Ziffern sowie - / _ enthalten.', 'warnung');
 		if (d.lizenz && gemeldet.has(d.lizenz)) {
 			const ok = await ui.bestaetigen(`${d.vorname} ${d.nachname} ist bereits gemeldet. Trotzdem ein weiteres Mal nennen (z. B. in einer anderen Klasse)?`, { ja: 'Trotzdem nennen' });
 			if (!ok) return;
 		}
 		try {
-			await s.nennen({ ...d, startnummer: Number(d.startnummer), rookieJahr: d.rookieJahr ? Number(d.rookieJahr) : null });
+			const nennung = { klasseId: d.klasseId, startnummer: Number(d.startnummer), ausserWertung: d.ausserWertung };
+			const rookieJahr = d.rookieJahr ? Number(d.rookieJahr) : null;
+			if (dbFahrer) {
+				// Mit der aktuellen Version der Fahrerdaten verknüpfen
+				const ref = await (await repo()).fahrerSpeichern({ ...dbFahrer, id: dbFahrer.id });
+				await s.nennenMitFahrer(dbFahrer, ref, nennung);
+			} else if (manuell && inDatenbank) {
+				const daten = { ...d, rookieJahr, klasse: s.klasseVon(d)?.kuerzel ?? '', geburtsdatum: '', alteLizenz: '' };
+				const ref = await (await repo()).fahrerSpeichern(daten, 'Nennung');
+				await s.nennenMitFahrer(daten, ref, nennung);
+				await fahrerLaden();
+			} else {
+				await s.nennen({ ...d, ...nennung, rookieJahr });
+			}
 			ui.melden(`Nr. ${d.startnummer} – ${d.vorname} ${d.nachname} gemeldet.`);
 			entwurf = null;
 			await tick();
@@ -111,17 +135,18 @@
 			<div class="min-w-72 flex-1">
 				<FahrerSuche bind:this={suche} {fahrer} {gemeldet} onauswahl={vorbereiten} />
 			</div>
-			<button class="btn" onclick={() => vorbereiten(null)}><UserPlus size={16} /> Ohne Datenbank nennen</button>
+			<button class="btn" onclick={() => vorbereiten(null)}><UserPlus size={16} /> Neuen Fahrer nennen</button>
+			<button class="btn" onclick={() => (importOffen = true)}><FileUp size={16} /> Nennliste importieren</button>
 		</div>
 		{#if fahrer.length === 0}
-			<p class="mt-3 text-sm text-muted">Die Fahrerdatenbank ist leer. <a class="text-accent-strong underline" href="/fahrer">Fahrerliste importieren</a> oder Fahrer ohne Datenbank nennen.</p>
+			<p class="mt-3 text-sm text-muted">Die Fahrerdatenbank ist leer. <a class="text-accent-strong underline" href="/fahrer">Fahrerliste importieren</a>, eine Nennliste importieren oder neue Fahrer direkt nennen.</p>
 		{/if}
 
 		{#if entwurf}
 			<form class="mt-4 rounded-xl border border-accent/40 bg-accent-soft/40 p-4" onsubmit={nennen}>
 				<div class="mb-3 flex items-center justify-between">
 					<p class="font-semibold">
-						{#if entwurf.manuell}Fahrer ohne Datenbank nennen{:else}{entwurf.nachname}, {entwurf.vorname} <span class="font-normal text-muted">· {entwurf.verein} · Lizenz {entwurf.lizenz}</span>{/if}
+						{#if entwurf.manuell}Neuen Fahrer nennen{:else}{entwurf.nachname}, {entwurf.vorname} <span class="font-normal text-muted">· {entwurf.verein} · Lizenz {entwurf.lizenz}</span>{/if}
 					</p>
 					<button type="button" class="btn btn-ghost btn-icon" onclick={() => (entwurf = null)} aria-label="Abbrechen"><X size={16} /></button>
 				</div>
@@ -134,6 +159,9 @@
 						<div><label class="label" for="m-plz">PLZ</label><input id="m-plz" class="input" bind:value={entwurf.plz} /></div>
 						<div><label class="label" for="m-ort">Wohnort</label><input id="m-ort" class="input" bind:value={entwurf.ort} /></div>
 						<div><label class="label" for="m-rookie">Rookie-Jahr</label><input id="m-rookie" class="input" type="number" bind:value={entwurf.rookieJahr} /></div>
+						<label class="col-span-2 flex items-center gap-2 self-end pb-2 text-sm md:col-span-4">
+							<input type="checkbox" class="size-4 accent-[var(--color-accent)]" bind:checked={entwurf.inDatenbank} /> In die Fahrerdatenbank übernehmen
+						</label>
 					</div>
 				{/if}
 				<div class="flex flex-wrap items-end gap-3">
@@ -215,3 +243,5 @@
 		<p class="text-sm text-muted">Noch ohne Nennungen: {leer.map((k) => k.name).join(', ')}</p>
 	{/if}
 </div>
+
+<NennungImport store={s} offen={importOffen} onschliessen={() => ((importOffen = false), fahrerLaden())} />

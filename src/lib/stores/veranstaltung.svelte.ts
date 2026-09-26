@@ -2,8 +2,11 @@
  * Zustand einer geöffneten Veranstaltung. Alle Änderungen werden sofort
  * in die Datenbank geschrieben; Wertungen werden live abgeleitet.
  */
-import { repo, type StartDaten, type VeranstaltungsDaten, type VeranstaltungsStammdaten } from '$lib/db';
+import { repo, type Fahrer, type FahrerRef, type StartDaten, type VeranstaltungsDaten, type VeranstaltungsStammdaten } from '$lib/db';
+import type { FahrerDaten } from '$lib/domain/fahrer-import';
 import { mannschaftsWertung } from '$lib/domain/mannschaft';
+import { zusammengefuehrt, type ImportPosten } from '$lib/domain/nennung-import';
+import { startReihenfolge } from '$lib/domain/reihenfolge';
 import type { Klasse, LaufEingabe, LaufNr, Starter } from '$lib/domain/typen';
 import { klassenWertung } from '$lib/domain/wertung';
 
@@ -43,6 +46,11 @@ export class VeranstaltungsStore {
 	mannschaft = $derived(mannschaftsWertung(this.klassenWertungen, this.daten.veranstaltung.mannschaftAnzahl));
 
 	nachStartnummer = $derived(new Map(this.daten.starter.map((s) => [s.startnummer, s])));
+
+	klassenPosition = $derived(new Map(this.daten.klassen.map((k, i) => [k.id, i])));
+
+	/** Startreihenfolge des Veranstaltungstags (Paare: T, W1 – danach alle W2). */
+	reihenfolge = $derived(startReihenfolge(this.daten.starter, this.klassenPosition));
 
 	klasseVon(s: Pick<Starter, 'klasseId'>): Klasse | undefined {
 		return this.daten.klassen.find((k) => k.id === s.klasseId);
@@ -116,12 +124,73 @@ export class VeranstaltungsStore {
 		this.daten.starter = this.starter.filter((s) => s.id !== id);
 	}
 
-	async laufSpeichern(startId: number, nr: LaufNr, eingabe: LaufEingabe | null) {
-		await (await repo()).laufSpeichern(startId, nr, eingabe);
+	/** Speichert einen Lauf. Änderungen an bereits erfassten Läufen brauchen einen Kommentar. */
+	async laufSpeichern(startId: number, nr: LaufNr, eingabe: LaufEingabe | null, aenderungsKommentar?: string) {
+		// Der gespeicherte Stand ist normalisiert (z. B. keine Zeit bei DNS/DSQ).
+		const gespeichert = await (await repo()).laufSpeichern(startId, nr, eingabe, aenderungsKommentar);
 		const s = this.starter.find((s) => s.id === startId);
 		if (!s) return;
-		if (eingabe) s.laeufe[nr] = { ...eingabe, importId: eingabe.importId ?? null };
+		if (gespeichert) s.laeufe[nr] = gespeichert;
 		else delete s.laeufe[nr];
+	}
+
+	async laufAenderungen(startId: number) {
+		return (await repo()).laufAenderungen(startId);
+	}
+
+	/**
+	 * Nennt einen Fahrer aus der Datenbank bzw. legt ihn dort an und verknüpft die
+	 * Nennung mit der aktuellen Version seiner Daten.
+	 */
+	async nennenMitFahrer(
+		fahrerDaten: FahrerDaten,
+		ref: FahrerRef,
+		nennung: { klasseId: number; startnummer: number; ausserWertung?: boolean }
+	): Promise<Starter> {
+		return this.nennen({
+			klasseId: nennung.klasseId,
+			startnummer: nennung.startnummer,
+			ausserWertung: nennung.ausserWertung ?? false,
+			lizenz: fahrerDaten.lizenz,
+			nachname: fahrerDaten.nachname,
+			vorname: fahrerDaten.vorname,
+			verein: fahrerDaten.verein,
+			plz: fahrerDaten.plz,
+			ort: fahrerDaten.ort,
+			rookieJahr: fahrerDaten.rookieJahr,
+			fahrerId: ref.id,
+			fahrerVersionId: ref.versionId
+		});
+	}
+
+	/** Führt einen geplanten Nennungs-Import aus. */
+	async nennungenImportieren(posten: ImportPosten<Fahrer>[]): Promise<{ genannt: number; neueFahrer: number; aktualisiert: number; fehler: string[] }> {
+		const r = await repo();
+		const ergebnis = { genannt: 0, neueFahrer: 0, aktualisiert: 0, fehler: [] as string[] };
+		for (const p of posten) {
+			if (!p.uebernehmen || p.klasseId === null || p.startnummer === null) continue;
+			try {
+				let daten: FahrerDaten;
+				let ref: FahrerRef;
+				if (p.art === 'neu' || (p.art === 'konflikt' && p.loesung === 'neuer-fahrer')) {
+					daten = p.zeile;
+					ref = await r.fahrerSpeichern(p.zeile, p.art === 'neu' ? 'Nennungs-Import' : 'Nennungs-Import (anderer Fahrer)');
+					ergebnis.neueFahrer++;
+				} else if (p.art === 'konflikt' && p.loesung === 'zusammenfuehren' && p.bestand) {
+					daten = zusammengefuehrt(p);
+					ref = await r.fahrerSpeichern({ ...daten, id: p.bestand.id }, 'Nennungs-Import (zusammengeführt)');
+					ergebnis.aktualisiert++;
+				} else if (p.bestand) {
+					daten = p.bestand;
+					ref = await r.fahrerSpeichern({ ...p.bestand, id: p.bestand.id });
+				} else continue;
+				await this.nennenMitFahrer(daten, ref, { klasseId: p.klasseId, startnummer: p.startnummer });
+				ergebnis.genannt++;
+			} catch (e) {
+				ergebnis.fehler.push(`${p.zeile.nachname}, ${p.zeile.vorname}: ${e instanceof Error ? e.message : e}`);
+			}
+		}
+		return ergebnis;
 	}
 }
 

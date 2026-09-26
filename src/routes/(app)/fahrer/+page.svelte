@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { FileDown, FileUp, Plus, Search, Trash2, TriangleAlert } from '@lucide/svelte';
-	import { repo, type Fahrer, type FahrerStart } from '$lib/db';
+	import { repo, type Fahrer, type FahrerStart, type FahrerVersion } from '$lib/db';
+	import { lizenzGueltig } from '$lib/domain/typen';
 	import { dekodiereText, stringifyCsv } from '$lib/domain/csv';
 	import { FAHRER_CSV_KOPF, fahrerCsvZeile, formatDatum, parseDatum, parseFahrerCsv, type FahrerDaten } from '$lib/domain/fahrer-import';
 	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
@@ -11,7 +12,8 @@
 	type Sortierung = 'name' | 'lizenz' | 'klasse' | 'verein';
 
 	let fahrer = $state<Fahrer[]>([]);
-	let starts = $state(new Map<string, FahrerStart[]>());
+	let starts = $state(new Map<number, FahrerStart[]>());
+	let versionen = $state<FahrerVersion[]>([]);
 	let suche = $state('');
 	let sortierung = $state<Sortierung>('name');
 	let klassenFilter = $state('');
@@ -41,7 +43,6 @@
 		return liste.sort(vergleich[sortierung]);
 	});
 
-	const lizenzGueltig = (lizenz: string) => /^\d+$/.test(lizenz);
 
 	async function importieren() {
 		try {
@@ -75,6 +76,8 @@
 	}
 
 	function oeffnen(f?: Fahrer) {
+		versionen = [];
+		if (f) repo().then((r) => r.fahrerVersionen(f.id)).then((v) => (versionen = v)).catch((e) => ui.fehler(e));
 		bearbeiten = f
 			? { ...f, geburtsdatumText: formatDatum(f.geburtsdatum) }
 			: { lizenz: '', klasse: '', nachname: '', vorname: '', rookieJahr: null, plz: '', ort: '', verein: '', geburtsdatum: '', alteLizenz: '', geburtsdatumText: '' };
@@ -84,10 +87,21 @@
 		e.preventDefault();
 		if (!bearbeiten) return;
 		const { geburtsdatumText, ...daten } = bearbeiten;
+		const lizenz = daten.lizenz.trim();
+		if (lizenz && !lizenzGueltig(lizenz)) {
+			ui.melden('Die Lizenz darf nur Buchstaben, Ziffern sowie - / _ enthalten.', 'warnung');
+			return;
+		}
+		const gleicheLizenz = fahrer.filter((f) => lizenz && f.lizenz === lizenz && f.id !== daten.id);
+		if (gleicheLizenz.length) {
+			const namen = gleicheLizenz.map((f) => `${f.vorname} ${f.nachname}`).join(', ');
+			const ok = await ui.bestaetigen(`Die Lizenz ${lizenz} ist bereits vergeben (${namen}). Trotzdem als eigenen Fahrer speichern?`, { ja: 'Trotzdem speichern' });
+			if (!ok) return;
+		}
 		try {
 			await (await repo()).fahrerSpeichern({
 				...daten,
-				lizenz: daten.lizenz.trim(),
+				lizenz,
 				geburtsdatum: parseDatum(geburtsdatumText),
 				rookieJahr: daten.rookieJahr ? Number(daten.rookieJahr) : null
 			});
@@ -164,7 +178,7 @@
 						<tr class="cursor-pointer border-t border-line hover:bg-sunken/60" onclick={() => oeffnen(f)}>
 							<td class="px-4 py-2 font-mono text-xs">
 								{f.lizenz}
-								{#if !lizenzGueltig(f.lizenz)}<span class="badge ml-1 bg-warn-soft text-warn" title="Lizenz enthält andere Zeichen als Ziffern"><TriangleAlert size={11} /></span>{/if}
+								{#if !lizenzGueltig(f.lizenz)}<span class="badge ml-1 bg-warn-soft text-warn" title="Lizenz enthält unzulässige Zeichen (erlaubt: Buchstaben, Ziffern, - / _)"><TriangleAlert size={11} /></span>{/if}
 							</td>
 							<td class="px-4 py-2 font-medium">
 								{f.nachname}, {f.vorname}
@@ -175,7 +189,7 @@
 							<td class="px-4 py-2 text-muted">{f.plz} {f.ort}</td>
 							<td class="px-4 py-2 text-muted tabular">{formatDatum(f.geburtsdatum)}</td>
 							<td class="px-4 py-2">
-								{#if starts.get(f.lizenz)?.length}<span class="badge bg-ok-soft text-ok">{starts.get(f.lizenz)?.length}</span>{/if}
+								{#if starts.get(f.id)?.length}<span class="badge bg-ok-soft text-ok">{starts.get(f.id)?.length}</span>{/if}
 							</td>
 						</tr>
 					{/each}
@@ -235,14 +249,35 @@
 				<label class="label" for="f-alt">Alte Lizenz-Nr.</label>
 				<input id="f-alt" class="input" bind:value={bearbeiten.alteLizenz} />
 			</div>
-			{#if bearbeiten.id && starts.get(bearbeiten.lizenz)?.length}
+			{#if bearbeiten.id && starts.get(bearbeiten.id)?.length}
 				<div class="col-span-2">
 					<p class="label">Gestartet bei</p>
 					<ul class="divide-y divide-line rounded-lg border border-line text-sm">
-						{#each starts.get(bearbeiten.lizenz) ?? [] as s, i (i)}
+						{#each starts.get(bearbeiten.id) ?? [] as s, i (i)}
 							<li class="flex justify-between px-3 py-1.5">
 								<a class="hover:text-accent-strong" href="/veranstaltung/{s.veranstaltungId}">{formatDatum(s.datum)} · {s.veranstaltung}</a>
-								<span class="text-muted">{s.klasse} · Nr. {s.startnummer}</span>
+								<span class="text-muted">
+									{s.klasse} · Nr. {s.startnummer}
+									{#if s.fahrerVersionId && versionen.length > 1}· Version {versionen.length - versionen.findIndex((v) => v.id === s.fahrerVersionId)}{/if}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+			{#if versionen.length > 1}
+				<div class="col-span-2">
+					<p class="label">Frühere Stände ({versionen.length} Versionen)</p>
+					<ul class="divide-y divide-line rounded-lg border border-line text-xs">
+						{#each versionen as v, i (v.id)}
+							<li class="px-3 py-1.5">
+								<div class="flex justify-between">
+									<span class="font-semibold">Version {versionen.length - i}{i === 0 ? ' (aktuell)' : ''}</span>
+									<span class="text-muted">{new Date(v.erstelltAm).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} · {v.anlass}</span>
+								</div>
+								<div class="text-muted">
+									{v.nachname}, {v.vorname} · {v.verein} · {v.plz} {v.ort} · Lizenz {v.lizenz}
+								</div>
 							</li>
 						{/each}
 					</ul>

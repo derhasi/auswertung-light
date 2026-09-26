@@ -12,11 +12,11 @@ am Veranstaltungsort kein Internet nötig ist.
 
 | Bereich | Was die App kann |
 |---|---|
-| **Fahrerdatenbank** | Import der Zugspitzpokal-Fahrerliste (CSV, UTF-8 oder Windows-1252). Vorhandene Fahrer werden abgeglichen statt überschrieben. Suche, Sortierung nach Name, Lizenz, Klasse oder Verein, Bearbeiten, CSV-Export. Anzeige, bei welchen Veranstaltungen ein Fahrer gestartet ist. |
+| **Fahrerdatenbank** | Import der Zugspitzpokal-Fahrerliste (CSV, UTF-8 oder Windows-1252). Vorhandene Fahrer werden abgeglichen statt überschrieben. Jede Änderung wird als Version gespeichert; jede Nennung ist mit der Version verknüpft, mit der gemeldet wurde. Lizenzen dürfen Buchstaben, Ziffern und `-` `/` `_` enthalten. Suche, Sortierung, Bearbeiten, CSV-Export, Übersicht der Starts je Fahrer. |
 | **Veranstaltungen** | Beliebig viele Veranstaltungen. Klassen, Strafsekunden, Logos, Ausrichter und Zeitmessung werden von der letzten Veranstaltung übernommen. |
 | **Klassen** | Frei konfigurierbar (Standard: Klasse 1–6), Reihenfolge änderbar, je Klasse einstellbar, ob sie zur Mannschaftswertung zählt. |
-| **Nennung** | Fahrer per Suche (Name, Lizenz, Verein) mit der Tastatur nennen. Die Klasse wird aus der Datenbank übernommen, die Startnummer vorgeschlagen. Fahrer ohne Lizenz können direkt erfasst werden. Kennzeichnung „außer Wertung" (niW). |
-| **Erfassung** | Eingabemaske ganz für die Tastatur: Startnummer ↵, Fehler 1 ↵, Fehler 2 ↵, Zeit ↵. Training, Lauf 1 und Lauf 2 mit Strg + 0/1/2. Zeiten als `32,45` oder `1:02,34`. Übersicht der noch offenen Fahrer. |
+| **Nennung** | Fahrer per Suche (Name, Lizenz, Verein) mit der Tastatur nennen oder eine Nennliste (CSV/Excel, optional mit Startnummern) je Klasse importieren. Unbekannte Fahrer werden automatisch in die Datenbank übernommen. Abweichende Datensätze (Name, Adresse, Verein) werden nebeneinander angezeigt und können feldweise zusammengeführt, unverändert übernommen oder als anderer Fahrer neu angelegt werden. Kennzeichnung „außer Wertung" (niW). |
+| **Erfassung** | Eingabemaske ganz für die Tastatur: Fehler 1 ↵, Fehler 2 ↵, Zeit ↵. Nach dem Speichern springt die Maske zum nächsten Start der Reihenfolge (je zwei Fahrer Training und Wertung 1, danach alle Wertung 2). DNS/DSQ mit Pflichtkommentar. Bereits erfasste Läufe können korrigiert werden – mit Pflicht-Begründung und Änderungsprotokoll, auch nachträglich aus der Ergebnisliste. Zeiten als `32,45` oder `1:02,34`. |
 | **Zeitmessung** | Übernahme von Zeiten aus der CSV- oder Excel-Datei der Zeitmessanlage. Die Datei wird beobachtet, neue Zeiten erscheinen sofort. Übernahme per Klick oder Strg + T, bereits zugeordnete Zeiten werden markiert. |
 | **Ergebnisse** | Live berechnete Ergebnislisten je Klasse mit Laufzeiten, Strafen, Gesamtzeit, Punkten und ADAC-Sportabzeichenpunkten. Rookies werden markiert, Adressen lassen sich einblenden. |
 | **Mannschaftswertung** | Die besten 6 Ergebnisse (einstellbar) je Verein über alle Klassen. Bei Punktgleichstand auf dem letzten zählenden Platz werden die Namen mit „&" verbunden. |
@@ -42,6 +42,7 @@ Die Rechenregeln stammen aus den Formeln der Excel-Version (`src/lib/domain/wert
 - **Punkte** = (Teilnehmer − Platz) × 10 / Teilnehmer + 1. Alle gemeldeten Fahrer der Klasse zählen als Teilnehmer.
 - **Sportabzeichenpunkte:** Platz 1 = 6, Platz 2–10 = (12 − Platz) / 2, ab Platz 11 = 0,5
 - **Mannschaft:** Summe der besten N Punktergebnisse je Verein
+- **DNS / DSQ:** Ist ein Wertungslauf als DNS (nicht gestartet) oder DSQ (disqualifiziert) gekennzeichnet, erhält der Fahrer keinen Platz und keine Punkte. Im ZP-Export steht er als „nicht gewertet“ (0) ohne Platz.
 
 ### Unterschiede zur Excel-Version
 

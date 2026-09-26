@@ -14,4 +14,13 @@ Komplette Neuentwicklung als Desktop-App (Tauri 2, Svelte 5, TypeScript, SQLite)
 * Korrektur: Klasse 6 zählt zur Mannschaftswertung
 * Korrektur: Fahrer ohne vollständige Wertungsläufe werden nicht mehr vorne einsortiert
 
+Änderungen aus dem ersten Nutzertest:
+
+* Lizenznummern dürfen Buchstaben, Ziffern sowie `-`, `/` und `_` enthalten
+* Erfasste Läufe können korrigiert werden; eine Begründung ist Pflicht und wird im Änderungsprotokoll festgehalten
+* Läufe können als DNS (nicht gestartet) oder DSQ (disqualifiziert) gekennzeichnet werden, mit Pflichtkommentar
+* Nach dem Speichern springt die Erfassung zum nächsten Start (Zweierpaare: Training, Wertung 1 – danach alle Wertung 2)
+* Nennlisten (CSV/Excel) können je Klasse importiert werden; neue Fahrer werden automatisch angelegt, Abweichungen im Seitenvergleich zusammengeführt
+* Fahrerdaten werden versioniert, Nennungen sind mit der verwendeten Version verknüpft; gleiche Lizenzen für verschiedene Fahrer sind möglich
+
 Die Änderungen der Excel-Versionen bis v0.23 stehen in [legacy/CHANGELOG.md](legacy/CHANGELOG.md).

@@ -1,7 +1,18 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
-	import { Eraser, FileClock, RefreshCw, Save, TriangleAlert } from '@lucide/svelte';
-	import { anzeigeName, LAEUFE, LAUF_KURZ, LAUF_NAMEN, type LaufNr, type Starter } from '$lib/domain/typen';
+	import { Ban, Eraser, FileClock, ListOrdered, RefreshCw, Save, TriangleAlert } from '@lucide/svelte';
+	import {
+		anzeigeName,
+		LAEUFE,
+		LAUF_KURZ,
+		LAUF_NAMEN,
+		laufErfasst,
+		type LaufEingabe,
+		type LaufNr,
+		type LaufStatus,
+		type Starter
+	} from '$lib/domain/typen';
+	import { naechsterStart, offeneStarts, type StartPlatz } from '$lib/domain/reihenfolge';
 	import { laufErgebnis } from '$lib/domain/wertung';
 	import { formatZeit, parseZeit } from '$lib/domain/zahlen';
 	import type { GemesseneZeit } from '$lib/domain/zeitquelle';
@@ -11,55 +22,70 @@
 
 	let { data } = $props();
 	const s = $derived(data.store);
-
 	const store0 = untrack(() => data.store);
-	const LAUF_SCHLUESSEL = `erfassung-lauf-${store0.id}`;
-	function gemerkterLauf(): LaufNr {
-		try {
-			const gespeichert = sessionStorage.getItem(LAUF_SCHLUESSEL);
-			const wert = gespeichert === null ? NaN : Number(gespeichert);
-			return (LAEUFE as number[]).includes(wert) ? (wert as LaufNr) : 1;
-		} catch {
-			return 1;
-		}
-	}
 
-	let lauf = $state<LaufNr>(gemerkterLauf());
+	let lauf = $state<LaufNr>(1);
 	let nummerText = $state('');
+	let status = $state<LaufStatus>('ok');
 	let fehler1 = $state<number | null>(0);
 	let fehler2 = $state<number | null>(0);
 	let zeitText = $state('');
 	let importId = $state<string | null>(null);
-	let letzte = $state<{ startId: number; lauf: LaufNr; ergebnis: number | null }[]>([]);
+	let kommentar = $state('');
+	let aenderungsgrund = $state('');
+	let letzte = $state<{ startId: number; lauf: LaufNr }[]>([]);
 
 	let nummerFeld: HTMLInputElement | undefined = $state();
 	let fehler1Feld: HTMLInputElement | undefined = $state();
 	let fehler2Feld: HTMLInputElement | undefined = $state();
 	let zeitFeld: HTMLInputElement | undefined = $state();
+	let kommentarFeld: HTMLInputElement | undefined = $state();
+	let grundFeld: HTMLInputElement | undefined = $state();
 
 	const zeitmessung = new Zeitmessung(store0.v.zeitquelle);
 	onMount(() => {
 		zeitmessung.starten();
-		nummerFeld?.focus();
+		// Mit dem ersten offenen Start der Reihenfolge beginnen
+		const erster = naechsterStart(store0.reihenfolge);
+		if (erster) platzLaden(erster);
+		else nummerFeld?.focus();
 	});
 	onDestroy(() => zeitmessung.beenden());
 
-	$effect(() => {
-		try {
-			sessionStorage.setItem(LAUF_SCHLUESSEL, String(lauf));
-		} catch {
-			/* ignorieren */
-		}
-	});
-
 	const starter = $derived(nummerText.trim() ? s.nachStartnummer.get(Number(nummerText)) : undefined);
 	const vorhanden = $derived(starter?.laeufe[lauf]);
+	const vorhandenErfasst = $derived(laufErfasst(vorhanden));
 	const zeit = $derived(parseZeit(zeitText));
 	const vorschau = $derived(
-		zeit === null || zeit === undefined ? null : laufErgebnis({ fehler1: fehler1 ?? 0, fehler2: fehler2 ?? 0, zeit }, s.v)
+		status !== 'ok' || zeit === null || zeit === undefined
+			? null
+			: laufErgebnis({ fehler1: fehler1 ?? 0, fehler2: fehler2 ?? 0, zeit }, s.v)
 	);
-	const offen = $derived(s.starter.filter((st) => st.laeufe[lauf]?.zeit == null));
-	const erfasstAnzahl = (nr: LaufNr) => s.starter.filter((st) => st.laeufe[nr]?.zeit != null).length;
+
+	/** Formularinhalt als Laufeingabe. */
+	const eingabe = $derived<LaufEingabe>({
+		status,
+		fehler1: status === 'ok' ? (fehler1 ?? 0) : 0,
+		fehler2: status === 'ok' ? (fehler2 ?? 0) : 0,
+		zeit: status === 'ok' ? (zeit ?? null) : null,
+		importId: status === 'ok' ? importId : null,
+		kommentar: kommentar.trim() || null
+	});
+
+	/** Weicht das Formular von einem bereits erfassten Lauf ab? Dann ist ein Änderungsgrund nötig. */
+	const istKorrektur = $derived(
+		vorhandenErfasst &&
+			!!vorhanden &&
+			((vorhanden.status ?? 'ok') !== eingabe.status ||
+				(vorhanden.fehler1 || 0) !== eingabe.fehler1 ||
+				(vorhanden.fehler2 || 0) !== eingabe.fehler2 ||
+				(vorhanden.zeit ?? null) !== (eingabe.zeit ?? null) ||
+				(vorhanden.kommentar ?? '') !== (eingabe.kommentar ?? ''))
+	);
+
+	const aktuellerPlatz = $derived(starter ? { starterId: starter.id, lauf } : null);
+	const alsNaechstes = $derived(offeneStarts(s.reihenfolge, aktuellerPlatz, 10).filter((p) => !(p.starter.id === starter?.id && p.lauf === lauf)));
+	const erfasstAnzahl = (nr: LaufNr) => s.starter.filter((st) => laufErfasst(st.laeufe[nr])).length;
 
 	/** Welche Kennungen der Zeitmessung sind schon einem Lauf zugeordnet? */
 	const zugeordnet = $derived.by(() => {
@@ -75,15 +101,19 @@
 
 	function formularLaden(st: Starter | undefined) {
 		const l = st?.laeufe[lauf];
+		status = l?.status ?? 'ok';
 		fehler1 = l?.fehler1 ?? 0;
 		fehler2 = l?.fehler2 ?? 0;
 		zeitText = l?.zeit != null ? formatZeit(l.zeit) : '';
 		importId = l?.importId ?? null;
+		kommentar = l?.kommentar ?? '';
+		aenderungsgrund = '';
 	}
 
-	async function starterWaehlen(st: Starter) {
-		nummerText = String(st.startnummer);
-		formularLaden(st);
+	async function platzLaden(p: StartPlatz) {
+		lauf = p.lauf;
+		nummerText = String(p.starter.startnummer);
+		formularLaden(p.starter);
 		await tick();
 		fehler1Feld?.select();
 	}
@@ -108,20 +138,38 @@
 			nummerFeld?.select();
 			return;
 		}
-		if (zeit === undefined) {
-			ui.melden('Die Zeit ist ungültig. Erlaubt sind z. B. 32,45 oder 1:02,34.', 'fehler');
-			zeitFeld?.select();
+		if (status === 'ok') {
+			if (zeit === undefined) {
+				ui.melden('Die Zeit ist ungültig. Erlaubt sind z. B. 32,45 oder 1:02,34.', 'fehler');
+				zeitFeld?.select();
+				return;
+			}
+			if (zeit === null) {
+				ui.melden('Bitte eine Zeit eingeben – oder den Lauf als DNS/DSQ kennzeichnen.', 'warnung');
+				zeitFeld?.focus();
+				return;
+			}
+		} else if (!kommentar.trim()) {
+			ui.melden(`Für ${status.toUpperCase()} ist ein Kommentar erforderlich.`, 'warnung');
+			kommentarFeld?.focus();
 			return;
 		}
-		if (zeit === null) {
-			ui.melden('Bitte eine Zeit eingeben.', 'warnung');
-			zeitFeld?.focus();
+		if (istKorrektur && !aenderungsgrund.trim()) {
+			ui.melden('Der Lauf war bereits erfasst. Bitte den Grund der Änderung angeben.', 'warnung');
+			grundFeld?.focus();
 			return;
 		}
+		const gespeichert = { starterId: starter.id, lauf };
 		try {
-			await s.laufSpeichern(starter.id, lauf, { fehler1: fehler1 ?? 0, fehler2: fehler2 ?? 0, zeit, importId });
-			letzte = [{ startId: starter.id, lauf, ergebnis: vorschau }, ...letzte.filter((l) => !(l.startId === starter.id && l.lauf === lauf))].slice(0, 10);
-			await zuruecksetzen();
+			await s.laufSpeichern(starter.id, lauf, eingabe, istKorrektur ? aenderungsgrund : undefined);
+			letzte = [{ startId: starter.id, lauf }, ...letzte.filter((l) => !(l.startId === starter.id && l.lauf === lauf))].slice(0, 10);
+			// Zum nächsten offenen Start in der Startreihenfolge springen
+			const naechster = naechsterStart(s.reihenfolge, gespeichert);
+			if (naechster) await platzLaden(naechster);
+			else {
+				ui.melden('Alle Läufe sind erfasst.', 'info');
+				await zuruecksetzen();
+			}
 		} catch (e) {
 			ui.fehler(e, 'Speichern fehlgeschlagen');
 		}
@@ -129,10 +177,20 @@
 
 	async function eingabeLoeschen() {
 		if (!starter || !vorhanden) return;
+		if (!aenderungsgrund.trim()) {
+			ui.melden('Bitte zuerst den Grund für das Löschen angeben.', 'warnung');
+			await tick();
+			grundFeld?.focus();
+			return;
+		}
 		const ok = await ui.bestaetigen(`${LAUF_NAMEN[lauf]} von Nr. ${starter.startnummer} (${anzeigeName(starter)}) löschen?`, { ja: 'Löschen', gefaehrlich: true });
 		if (!ok) return;
-		await s.laufSpeichern(starter.id, lauf, null);
-		await zuruecksetzen();
+		try {
+			await s.laufSpeichern(starter.id, lauf, null, aenderungsgrund);
+			formularLaden(starter);
+		} catch (e) {
+			ui.fehler(e);
+		}
 	}
 
 	async function zeitUebernehmen(z: GemesseneZeit | undefined) {
@@ -148,23 +206,24 @@
 			);
 			if (!ok) return;
 		}
-		if (vorhanden?.zeit != null && vorhanden.zeit !== z.zeit) {
-			const ok = await ui.bestaetigen(`Für diesen Lauf ist bereits ${formatZeit(vorhanden.zeit)} s erfasst. Durch ${formatZeit(z.zeit)} s ersetzen?`, { ja: 'Ersetzen' });
-			if (!ok) return;
-		}
+		status = 'ok';
 		zeitText = formatZeit(z.zeit);
 		importId = z.id;
 		await tick();
 		(starter ? zeitFeld : nummerFeld)?.focus();
 	}
 
-	/** Enter springt zum nächsten Feld, im Zeitfeld wird gespeichert. */
+	/** Enter springt zum nächsten Feld, im letzten Feld wird gespeichert. */
 	function weiter(e: KeyboardEvent, naechstes: HTMLInputElement | undefined | 'speichern') {
 		if (e.key !== 'Enter') return;
 		e.preventDefault();
 		if (naechstes === 'speichern') speichern();
 		else naechstes?.select();
 	}
+
+	/** Nach der Zeit: ggf. noch Änderungsgrund, sonst speichern. */
+	const nachZeit = $derived(istKorrektur ? grundFeld : ('speichern' as const));
+	const nachKommentar = $derived(istKorrektur ? grundFeld : ('speichern' as const));
 
 	async function nummerBestaetigen(e: KeyboardEvent) {
 		if (e.key !== 'Enter') return;
@@ -173,7 +232,21 @@
 			if (nummerText.trim()) ui.melden(`Startnummer ${nummerText} ist nicht gemeldet.`, 'warnung');
 			return;
 		}
-		await starterWaehlen(starter);
+		// Ist der gewählte Lauf schon erfasst, zum ersten offenen Lauf des Fahrers wechseln
+		if (laufErfasst(starter.laeufe[lauf])) {
+			const offen = LAEUFE.find((nr) => !laufErfasst(starter.laeufe[nr]));
+			if (offen !== undefined) lauf = offen;
+		}
+		formularLaden(starter);
+		await tick();
+		(status === 'ok' ? fehler1Feld : kommentarFeld)?.select();
+	}
+
+	async function statusSetzen(neu: LaufStatus) {
+		status = neu;
+		await tick();
+		if (neu === 'ok') fehler1Feld?.select();
+		else kommentarFeld?.focus();
 	}
 
 	function globaleTasten(e: KeyboardEvent) {
@@ -192,6 +265,12 @@
 			e.preventDefault();
 			speichern();
 		}
+	}
+
+	function laufText(l: LaufEingabe | undefined): string {
+		if (!l) return '–';
+		if ((l.status ?? 'ok') !== 'ok') return (l.status ?? '').toUpperCase();
+		return l.zeit != null ? formatZeit(laufErgebnis(l, s.v)) : '–';
 	}
 </script>
 
@@ -223,6 +302,7 @@
 						oninput={() => formularLaden(starter)}
 						onkeydown={nummerBestaetigen}
 					/>
+					<p class="mt-1 text-center text-xs font-semibold text-accent-strong">{LAUF_NAMEN[lauf]}</p>
 				</div>
 				<div class="flex min-h-24 items-center rounded-xl border border-dashed border-line px-5 py-3">
 					{#if starter}
@@ -235,8 +315,8 @@
 								{#if starter.ausserWertung}<span class="badge bg-warn-soft text-warn">außer Wertung</span>{/if}
 								{#each LAEUFE as nr (nr)}
 									{@const l = starter.laeufe[nr]}
-									<span class="badge {l?.zeit != null ? 'bg-ok-soft text-ok' : 'bg-sunken text-muted'}">
-										{LAUF_KURZ[nr]}: {l?.zeit != null ? formatZeit(laufErgebnis(l, s.v)) : '–'}
+									<span class="badge {(l?.status ?? 'ok') !== 'ok' ? 'bg-danger-soft text-danger' : laufErfasst(l) ? 'bg-ok-soft text-ok' : 'bg-sunken text-muted'}">
+										{LAUF_KURZ[nr]}: {laufText(l)}
 									</span>
 								{/each}
 							</div>
@@ -244,50 +324,92 @@
 					{:else if nummerText.trim()}
 						<p class="flex items-center gap-2 text-sm text-danger"><TriangleAlert size={16} /> Startnummer {nummerText} ist nicht gemeldet.</p>
 					{:else}
-						<p class="text-sm text-muted">Startnummer eingeben und mit ↵ bestätigen – oder rechts einen offenen Fahrer anklicken.</p>
+						<p class="text-sm text-muted">Startnummer eingeben und mit ↵ bestätigen – oder rechts einen Start aus der Reihenfolge wählen.</p>
 					{/if}
 				</div>
 			</div>
 
-			<div class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1.6fr]">
-				<div>
-					<label class="label" for="f1">{s.v.fehler1Name} <span class="normal-case">(× {s.v.strafe1} s)</span></label>
-					<input id="f1" bind:this={fehler1Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler1} onkeydown={(e) => weiter(e, fehler2Feld)} disabled={!starter} />
+			<div class="mt-5 flex flex-wrap gap-2" role="group" aria-label="Status">
+				<button type="button" class="chip" aria-pressed={status === 'ok'} onclick={() => statusSetzen('ok')} disabled={!starter}>Gefahren</button>
+				<button type="button" class="chip" aria-pressed={status === 'dns'} onclick={() => statusSetzen('dns')} disabled={!starter}>
+					<Ban size={14} /> DNS – nicht gestartet
+				</button>
+				<button type="button" class="chip" aria-pressed={status === 'dsq'} onclick={() => statusSetzen('dsq')} disabled={!starter}>
+					<Ban size={14} /> DSQ – disqualifiziert
+				</button>
+			</div>
+
+			{#if status === 'ok'}
+				<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1.6fr]">
+					<div>
+						<label class="label" for="f1">{s.v.fehler1Name} <span class="normal-case">(× {s.v.strafe1} s)</span></label>
+						<input id="f1" bind:this={fehler1Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler1} onkeydown={(e) => weiter(e, fehler2Feld)} disabled={!starter} />
+					</div>
+					<div>
+						<label class="label" for="f2">{s.v.fehler2Name} <span class="normal-case">(× {s.v.strafe2} s)</span></label>
+						<input id="f2" bind:this={fehler2Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler2} onkeydown={(e) => weiter(e, zeitFeld)} disabled={!starter} />
+					</div>
+					<div class="col-span-2 md:col-span-1">
+						<label class="label" for="zeit">Zeit in Sekunden {#if importId}<span class="normal-case">· Zeitmessung #{importId}</span>{/if}</label>
+						<input
+							id="zeit"
+							bind:this={zeitFeld}
+							class="input py-3 text-center text-2xl font-semibold tabular {zeit === undefined ? 'border-danger' : ''}"
+							inputmode="decimal"
+							autocomplete="off"
+							placeholder="0,00"
+							bind:value={zeitText}
+							oninput={() => (importId = null)}
+							onkeydown={(e) => weiter(e, nachZeit)}
+							disabled={!starter}
+						/>
+					</div>
 				</div>
+			{/if}
+
+			<div class="mt-4 grid gap-4 {istKorrektur ? 'md:grid-cols-2' : ''}">
 				<div>
-					<label class="label" for="f2">{s.v.fehler2Name} <span class="normal-case">(× {s.v.strafe2} s)</span></label>
-					<input id="f2" bind:this={fehler2Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler2} onkeydown={(e) => weiter(e, zeitFeld)} disabled={!starter} />
-				</div>
-				<div class="col-span-2 md:col-span-1">
-					<label class="label" for="zeit">Zeit in Sekunden {#if importId}<span class="normal-case">· Zeitmessung #{importId}</span>{/if}</label>
+					<label class="label" for="kommentar">
+						Kommentar {#if status !== 'ok'}<span class="text-danger normal-case">(Pflicht bei {status.toUpperCase()})</span>{:else}<span class="normal-case">(optional)</span>{/if}
+					</label>
 					<input
-						id="zeit"
-						bind:this={zeitFeld}
-						class="input py-3 text-center text-2xl font-semibold tabular {zeit === undefined ? 'border-danger' : ''}"
-						inputmode="decimal"
-						autocomplete="off"
-						placeholder="0,00"
-						bind:value={zeitText}
-						oninput={() => (importId = null)}
-						onkeydown={(e) => weiter(e, 'speichern')}
+						id="kommentar"
+						bind:this={kommentarFeld}
+						class="input {status !== 'ok' && !kommentar.trim() ? 'border-warn' : ''}"
+						placeholder={status === 'dns' ? 'z. B. Fahrer nicht erschienen' : status === 'dsq' ? 'z. B. Frühstart, Streckenabkürzung' : 'Notiz zum Lauf'}
+						bind:value={kommentar}
+						onkeydown={(e) => weiter(e, nachKommentar)}
 						disabled={!starter}
 					/>
 				</div>
+				{#if istKorrektur}
+					<div>
+						<label class="label" for="grund">Grund der Änderung <span class="text-danger normal-case">(Pflicht)</span></label>
+						<input
+							id="grund"
+							bind:this={grundFeld}
+							class="input {aenderungsgrund.trim() ? '' : 'border-warn'}"
+							placeholder="z. B. Zeit falsch abgelesen"
+							bind:value={aenderungsgrund}
+							onkeydown={(e) => weiter(e, 'speichern')}
+						/>
+					</div>
+				{/if}
 			</div>
 
 			<div class="mt-6 flex flex-wrap items-center gap-3">
 				<div class="mr-auto">
 					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Ergebnis {LAUF_NAMEN[lauf]}</p>
-					<p class="text-3xl font-bold tabular">{vorschau === null ? '–' : `${formatZeit(vorschau)} s`}</p>
-					{#if vorhanden?.zeit != null}
-						<p class="text-xs text-warn">Bereits erfasst: {formatZeit(laufErgebnis(vorhanden, s.v))} s – Speichern überschreibt.</p>
+					<p class="text-3xl font-bold tabular">{status !== 'ok' ? status.toUpperCase() : vorschau === null ? '–' : `${formatZeit(vorschau)} s`}</p>
+					{#if vorhandenErfasst}
+						<p class="text-xs text-warn">Bereits erfasst: {laufText(vorhanden)} – Änderungen werden mit Begründung protokolliert.</p>
 					{/if}
 				</div>
 				{#if vorhanden}
 					<button type="button" class="btn" onclick={eingabeLoeschen}><Eraser size={16} /> Lauf löschen</button>
 				{/if}
 				<button type="button" class="btn" onclick={zuruecksetzen}>Abbrechen <kbd class="text-xs opacity-60">Esc</kbd></button>
-				<button type="submit" class="btn btn-primary px-5 py-3" disabled={!starter}><Save size={16} /> Speichern <kbd class="text-xs opacity-70">↵</kbd></button>
+				<button type="submit" class="btn btn-primary px-5 py-3" disabled={!starter}><Save size={16} /> Speichern & weiter <kbd class="text-xs opacity-70">↵</kbd></button>
 			</div>
 		</form>
 
@@ -299,11 +421,11 @@
 						{@const st = s.starter.find((x) => x.id === l.startId)}
 						{#if st}
 							<li>
-								<button class="flex w-full items-center gap-4 px-5 py-2 text-left hover:bg-sunken" onclick={() => (laufWechseln(l.lauf), starterWaehlen(st))}>
+								<button class="flex w-full items-center gap-4 px-5 py-2 text-left hover:bg-sunken" onclick={() => platzLaden({ starter: st, lauf: l.lauf })}>
 									<span class="w-12 font-bold tabular">{st.startnummer}</span>
 									<span class="flex-1">{anzeigeName(st)}</span>
 									<span class="text-muted">{LAUF_KURZ[l.lauf]}</span>
-									<span class="w-24 text-right font-semibold tabular">{formatZeit(laufErgebnis(st.laeufe[l.lauf], s.v))}</span>
+									<span class="w-24 text-right font-semibold tabular">{laufText(st.laeufe[l.lauf])}</span>
 								</button>
 							</li>
 						{/if}
@@ -314,6 +436,26 @@
 	</div>
 
 	<aside class="flex flex-col gap-6">
+		<section class="card overflow-hidden">
+			<h2 class="flex items-center gap-2 border-b border-line px-4 py-3 text-sm font-semibold"><ListOrdered size={16} /> Als Nächstes</h2>
+			{#if alsNaechstes.length === 0}
+				<p class="px-4 py-3 text-sm text-ok">Keine weiteren offenen Starts.</p>
+			{:else}
+				<ul class="divide-y divide-line text-sm">
+					{#each alsNaechstes as p (p.starter.id + '-' + p.lauf)}
+						<li>
+							<button class="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-sunken" onclick={() => platzLaden(p)}>
+								<span class="w-10 font-bold tabular">{p.starter.startnummer}</span>
+								<span class="min-w-0 flex-1 truncate">{anzeigeName(p.starter)}</span>
+								<span class="badge {p.lauf === 0 ? 'bg-sunken text-muted' : 'bg-accent-soft text-accent-strong'}">{LAUF_KURZ[p.lauf]}</span>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			<p class="border-t border-line px-4 py-2 text-[11px] text-muted">Reihenfolge: je zwei Fahrer Training und Wertung 1, danach alle Wertung 2.</p>
+		</section>
+
 		<section class="card overflow-hidden">
 			<header class="flex items-center justify-between border-b border-line px-4 py-3">
 				<h2 class="flex items-center gap-2 text-sm font-semibold"><FileClock size={16} /> Zeitmessung</h2>
@@ -356,21 +498,6 @@
 						{/each}
 					</ul>
 				{/if}
-			{/if}
-		</section>
-
-		<section class="card overflow-hidden">
-			<h2 class="border-b border-line px-4 py-3 text-sm font-semibold">Offen in {LAUF_NAMEN[lauf]} <span class="font-normal text-muted">({offen.length})</span></h2>
-			{#if offen.length === 0}
-				<p class="px-4 py-3 text-sm text-ok">Alle Fahrer sind erfasst.</p>
-			{:else}
-				<div class="flex max-h-96 flex-wrap gap-1.5 overflow-y-auto p-3">
-					{#each offen as st (st.id)}
-						<button class="rounded-lg border border-line px-2.5 py-1 text-sm font-semibold tabular hover:border-accent hover:bg-accent-soft" title="{anzeigeName(st)} · {s.klasseVon(st)?.name}" onclick={() => starterWaehlen(st)}>
-							{st.startnummer}
-						</button>
-					{/each}
-				</div>
 			{/if}
 		</section>
 	</aside>

@@ -5,6 +5,7 @@
 	import { LAUF_KURZ, WERTUNGSLAEUFE } from '$lib/domain/typen';
 	import { formatPunkte, formatZeit } from '$lib/domain/zahlen';
 	import { zpExportCsv } from '$lib/domain/zp-export';
+	import { STATUS_KURZ } from '$lib/domain/wertung';
 	import { CSV_FILTER, dateiSpeichern, JSON_FILTER } from '$lib/plattform';
 	import { ui } from '$lib/ui/ui-zustand.svelte';
 
@@ -38,19 +39,21 @@
 
 	async function ergebnisCsv() {
 		const kopf = ['Klasse', 'Platz', 'Startnummer', 'Lizenz', 'Nachname', 'Vorname', 'Verein', 'PLZ', 'Ort', 'Rookie'];
-		for (const nr of [0, ...WERTUNGSLAEUFE] as const) kopf.push(`${LAUF_KURZ[nr]} ${s.v.fehler1Name}`, `${LAUF_KURZ[nr]} ${s.v.fehler2Name}`, `${LAUF_KURZ[nr]} Zeit`, `${LAUF_KURZ[nr]} Ergebnis`);
+		for (const nr of [0, ...WERTUNGSLAEUFE] as const)
+			kopf.push(`${LAUF_KURZ[nr]} ${s.v.fehler1Name}`, `${LAUF_KURZ[nr]} ${s.v.fehler2Name}`, `${LAUF_KURZ[nr]} Zeit`, `${LAUF_KURZ[nr]} Ergebnis`, `${LAUF_KURZ[nr]} Kommentar`);
 		kopf.push('Gesamt', 'Punkte', 'Sportabzeichenpunkte');
 		const zeilen = s.klassenWertungen.flatMap(({ klasse, zeilen }) =>
 			zeilen.map((z) => {
 				const st = z.starter;
 				const werte: (string | number)[] = [
 					klasse.name,
-					st.ausserWertung ? 'niW' : (z.platz ?? ''),
+					z.platz ?? STATUS_KURZ[z.status],
 					st.startnummer, st.lizenz, st.nachname, st.vorname, st.verein, st.plz, st.ort, z.rookie ? 'ja' : ''
 				];
 				for (const nr of [0, 1, 2] as const) {
 					const l = st.laeufe[nr];
-					werte.push(l?.fehler1 ?? '', l?.fehler2 ?? '', formatZeit(l?.zeit), formatZeit(z.ergebnisse[nr]));
+					const status = (l?.status ?? 'ok') !== 'ok' ? (l?.status ?? '').toUpperCase() : '';
+					werte.push(status ? '' : (l?.fehler1 ?? ''), status ? '' : (l?.fehler2 ?? ''), status || formatZeit(l?.zeit), status || formatZeit(z.ergebnisse[nr]), l?.kommentar ?? '');
 				}
 				werte.push(formatZeit(z.gesamt), z.status === 'gewertet' ? formatPunkte(z.punkte) : '', z.status === 'gewertet' ? formatPunkte(z.sportabzeichen) : '');
 				return werte;

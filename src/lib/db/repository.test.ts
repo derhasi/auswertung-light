@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { migrieren } from './migration';
+import { MIGRATIONEN, migrieren } from './migration';
 import { erstelleDb, Repository } from './repository';
 import { sqlJsTreiber } from './treiber';
 import type { FahrerDaten } from '$lib/domain/fahrer-import';
@@ -32,8 +32,28 @@ describe('Repository', () => {
 
 	it('migriert idempotent', async () => {
 		const treiber = await sqlJsTreiber();
-		expect(await migrieren(treiber)).toBe(1);
-		expect(await migrieren(treiber)).toBe(1);
+		expect(await migrieren(treiber)).toBe(2);
+		expect(await migrieren(treiber)).toBe(2);
+	});
+
+	it('übernimmt vorhandene Daten beim Update auf Fahrerversionen', async () => {
+		const treiber = await sqlJsTreiber();
+		const [erste] = MIGRATIONEN;
+		for (const a of erste.sql.split('--> statement-breakpoint')) await treiber.ausfuehren(a);
+		await treiber.ausfuehren('PRAGMA user_version = 1');
+		await treiber.ausfuehren(`INSERT INTO fahrer (lizenz, nachname, geaendert_am) VALUES ('A-1', 'Alt', '2025-01-01')`);
+		await treiber.ausfuehren(`INSERT INTO veranstaltung (name, datum, erstellt_am) VALUES ('V', '2025-05-01', 'x')`);
+		await treiber.ausfuehren(`INSERT INTO klasse (veranstaltung_id, name) VALUES (1, 'K1')`);
+		await treiber.ausfuehren(`INSERT INTO start (veranstaltung_id, klasse_id, startnummer, lizenz, nachname) VALUES (1, 1, 1, 'A-1', 'Alt')`);
+		await treiber.ausfuehren(`INSERT INTO lauf (start_id, nr, zeit, geaendert_am) VALUES (1, 1, 30.5, 'x')`);
+		expect(await migrieren(treiber)).toBe(2);
+		const repo = new Repository(erstelleDb(treiber));
+		const [f] = await repo.fahrerListe();
+		const versionen = await repo.fahrerVersionen(f.id);
+		expect(versionen).toHaveLength(1);
+		const [s] = (await repo.veranstaltungLaden(1))!.starter;
+		expect(s).toMatchObject({ fahrerId: f.id, fahrerVersionId: versionen[0].id });
+		expect(s.laeufe[1]).toMatchObject({ zeit: 30.5, status: 'ok' });
 	});
 
 	it('importiert und gleicht Fahrer ab', async () => {
@@ -45,8 +65,26 @@ describe('Repository', () => {
 		});
 		const liste = await r.fahrerListe();
 		expect(liste).toHaveLength(3);
-		expect(liste.find((f) => f.lizenz === '2')?.verein).toBe('MSC Neu');
-		await expect(r.fahrerSpeichern(fahrerDaten('1'))).rejects.toThrow('bereits vergeben');
+		const f2 = liste.find((f) => f.lizenz === '2')!;
+		expect(f2.verein).toBe('MSC Neu');
+		expect((await r.fahrerVersionen(f2.id)).map((v) => [v.verein, v.anlass])).toEqual([
+			['MSC Neu', 'ZP-Import'],
+			['MSC Test', 'ZP-Import']
+		]);
+	});
+
+	it('versioniert Fahrerdaten und erlaubt doppelte Lizenzen', async () => {
+		const a = await r.fahrerSpeichern(fahrerDaten('AB-1/2_x'));
+		const unveraendert = await r.fahrerSpeichern({ ...fahrerDaten('AB-1/2_x'), id: a.id });
+		expect(unveraendert).toEqual(a);
+		const geaendert = await r.fahrerSpeichern({ ...fahrerDaten('AB-1/2_x', { ort: 'Neustadt' }), id: a.id }, 'Nennungs-Import');
+		expect(geaendert.id).toBe(a.id);
+		expect(geaendert.versionId).not.toBe(a.versionId);
+		expect((await r.fahrerVersionen(a.id)).map((v) => v.ort)).toEqual(['Neustadt', 'Musterstadt']);
+		// Anderer Fahrer mit derselben Lizenz
+		const b = await r.fahrerSpeichern(fahrerDaten('AB-1/2_x', { nachname: 'Anders' }));
+		expect(b.id).not.toBe(a.id);
+		expect((await r.fahrerListe()).filter((f) => f.lizenz === 'AB-1/2_x')).toHaveLength(2);
 	});
 
 	it('legt Veranstaltungen mit Standardklassen an und übernimmt Einstellungen', async () => {
@@ -72,28 +110,46 @@ describe('Repository', () => {
 	it('speichert Nennungen und Läufe', async () => {
 		const id = await r.veranstaltungAnlegen({ name: 'Test', datum: '2026-05-01' });
 		const { klassen } = (await r.veranstaltungLaden(id))!;
-		const basis = { klasseId: klassen[0].id, lizenz: '1', nachname: 'A', vorname: 'B', verein: 'V', plz: '', ort: '', rookieJahr: 2026, ausserWertung: false };
+		const f = await r.fahrerSpeichern(fahrerDaten('1', { nachname: 'A', vorname: 'B', verein: 'V' }));
+		const basis = { klasseId: klassen[0].id, lizenz: '1', nachname: 'A', vorname: 'B', verein: 'V', plz: '', ort: '', rookieJahr: 2026, ausserWertung: false, fahrerId: f.id, fahrerVersionId: f.versionId };
 		const s = await r.startAnlegen(id, { ...basis, startnummer: 1 });
 		await expect(r.startAnlegen(id, { ...basis, startnummer: 1 })).rejects.toThrow('Startnummer 1');
 
 		await r.laufSpeichern(s.id, 1, { fehler1: 1, fehler2: 0, zeit: 30.12 });
+		// Änderung eines erfassten Laufs nur mit Begründung
+		await expect(r.laufSpeichern(s.id, 1, { fehler1: 2, fehler2: 1, zeit: 31.5, importId: '17' })).rejects.toThrow('begründen');
+		await r.laufSpeichern(s.id, 1, { fehler1: 2, fehler2: 1, zeit: 31.5, importId: '17' }, 'Tor übersehen');
+		// Unveränderte Wiederholung braucht keine Begründung
 		await r.laufSpeichern(s.id, 1, { fehler1: 2, fehler2: 1, zeit: 31.5, importId: '17' });
 		await r.laufSpeichern(s.id, 0, { fehler1: 0, fehler2: 0, zeit: 40 });
-		await r.laufSpeichern(s.id, 0, null);
+		await r.laufSpeichern(s.id, 0, null, 'falscher Fahrer');
+		await expect(r.laufSpeichern(s.id, 2, { fehler1: 0, fehler2: 0, zeit: null, status: 'dsq' })).rejects.toThrow('Kommentar');
+		await r.laufSpeichern(s.id, 2, { fehler1: 3, fehler2: 0, zeit: 20, status: 'dsq', kommentar: 'Frühstart' });
 		await r.startAktualisieren(s.id, { ausserWertung: true });
 
 		const [geladen] = (await r.veranstaltungLaden(id))!.starter;
 		expect(geladen.ausserWertung).toBe(true);
-		expect(geladen.laeufe).toEqual({ 1: { fehler1: 2, fehler2: 1, zeit: 31.5, importId: '17' } });
+		expect(geladen.fahrerVersionId).toBe(f.versionId);
+		expect(geladen.laeufe).toEqual({
+			1: { fehler1: 2, fehler2: 1, zeit: 31.5, importId: '17', status: 'ok', kommentar: null },
+			2: { fehler1: 0, fehler2: 0, zeit: null, importId: null, status: 'dsq', kommentar: 'Frühstart' }
+		});
+		const aenderungen = await r.laufAenderungen(s.id);
+		expect(aenderungen.map((a) => [a.nr, a.kommentar, a.vorher?.zeit, a.nachher?.zeit ?? null])).toEqual([
+			[0, 'falscher Fahrer', 40, null],
+			[1, 'Tor übersehen', 30.12, 31.5]
+		]);
 
 		await expect(r.klasseLoeschen(klassen[0].id)).rejects.toThrow('noch Fahrer');
-		expect((await r.fahrerStarts()).get('1')?.[0]).toMatchObject({ veranstaltung: 'Test', klasse: 'K1', startnummer: 1 });
+		expect((await r.fahrerStarts()).get(f.id)?.[0]).toMatchObject({ veranstaltung: 'Test', klasse: 'K1', startnummer: 1, fahrerVersionId: f.versionId });
 
 		const exportDaten = await r.veranstaltungExportieren(id);
 		const kopie = await r.veranstaltungImportieren(JSON.parse(JSON.stringify(exportDaten)));
 		const kopieDaten = (await r.veranstaltungLaden(kopie))!;
 		expect(kopieDaten.starter[0].laeufe[1]?.zeit).toBe(31.5);
 		expect(kopieDaten.starter[0].klasseId).toBe(kopieDaten.klassen[0].id);
+		expect(kopieDaten.starter[0].laeufe[2]?.status).toBe('dsq');
+		expect(kopieDaten.starter[0].fahrerId).toBeNull();
 
 		await r.veranstaltungLoeschen(id);
 		expect(await r.veranstaltungLaden(id)).toBeNull();

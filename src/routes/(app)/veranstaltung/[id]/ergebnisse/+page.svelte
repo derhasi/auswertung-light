@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Printer } from '@lucide/svelte';
 	import ErgebnisListe from '$lib/components/ErgebnisListe.svelte';
+	import LaufBearbeiten from '$lib/components/LaufBearbeiten.svelte';
+	import type { Starter } from '$lib/domain/typen';
 
 	let { data } = $props();
 	const s = $derived(data.store);
@@ -8,6 +10,7 @@
 	let auswahl = $state<number | 'alle'>('alle');
 	let adressen = $state(false);
 	let training = $state(true);
+	let bearbeiten = $state<Starter | null>(null);
 
 	const sichtbar = $derived(
 		s.klassenWertungen.filter((k) => k.zeilen.length > 0 && (auswahl === 'alle' || k.klasse.id === auswahl))
@@ -46,10 +49,15 @@
 						{#if zeilen.some((z) => z.status === 'unvollstaendig')}
 							· <span class="text-warn">{zeilen.filter((z) => z.status === 'unvollstaendig').length} unvollständig</span>
 						{/if}
+						{#if zeilen.some((z) => z.status === 'nicht-gestartet' || z.status === 'disqualifiziert')}
+							· <span class="text-danger">{zeilen.filter((z) => z.status === 'nicht-gestartet' || z.status === 'disqualifiziert').length} DNS/DSQ</span>
+						{/if}
 					</span>
 				</header>
-				<ErgebnisListe {zeilen} regeln={s.v} {adressen} {training} />
+				<ErgebnisListe {zeilen} regeln={s.v} {adressen} {training} onbearbeiten={(st) => (bearbeiten = st)} />
 			</section>
 		{/each}
 	</div>
 </div>
+
+<LaufBearbeiten store={s} starter={bearbeiten} onschliessen={() => (bearbeiten = null)} />

@@ -6,6 +6,7 @@
  *  5 Klasse (Ziffer)          6 gewertet (1/0)  7–9 Training F1/F2/Zeit
  * 10–12 Lauf 1 F1/F2/Zeit    13–15 Lauf 2 F1/F2/Zeit              16 Gesamt
  * 17 Platz („niW" außer Wertung)                18 Punkte          19 Sportabzeichenpunkte
+ *    (DNS/DSQ: gewertet = 0, Platz leer, Zeit des betroffenen Laufs 0)
  * 20 Name („Nachname, Vorname")                 21 „\N"
  */
 import { stringifyCsv } from './csv';
@@ -38,7 +39,7 @@ export function zpExportZeilen(
 				s.verein,
 				String(s.startnummer),
 				klassenZiffer(klasse),
-				s.ausserWertung ? '0' : '1',
+				s.ausserWertung || z.status === 'nicht-gestartet' || z.status === 'disqualifiziert' ? '0' : '1',
 				...laufSpalten(s.laeufe[0]),
 				...laufSpalten(s.laeufe[1]),
 				...laufSpalten(s.laeufe[2]),

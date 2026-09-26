@@ -6,8 +6,8 @@
 	const tasten = [
 		['Strg + 0 / 1 / 2', 'Erfassung: Training / Lauf 1 / Lauf 2 wählen'],
 		['Strg + T', 'Erfassung: nächste freie Zeit aus der Zeitmessung übernehmen'],
-		['Strg + S', 'Erfassung: speichern'],
-		['↵ (Enter)', 'Erfassung: zum nächsten Feld, im Zeitfeld speichern'],
+		['Strg + S', 'Erfassung: speichern und zum nächsten Start'],
+		['↵ (Enter)', 'Erfassung: zum nächsten Feld, im letzten Feld speichern und weiter'],
 		['Esc', 'Erfassung: Eingabe verwerfen'],
 		['↑ / ↓ und ↵', 'Nennung: Fahrer in der Suche auswählen']
 	];
@@ -21,8 +21,9 @@
 		<ol class="mt-3 list-decimal space-y-2 pl-5 text-sm">
 			<li><strong>Fahrerdatenbank</strong>: ZP-Fahrerliste (CSV) importieren. Vorhandene Fahrer werden abgeglichen, nicht doppelt angelegt.</li>
 			<li><strong>Veranstaltung anlegen</strong>: Einstellungen, Klassen und Logos werden von der letzten Veranstaltung übernommen.</li>
-			<li><strong>Nennung</strong>: Fahrer suchen, Klasse und Startnummer prüfen, mit Enter nennen. Fahrer ohne Lizenz können direkt erfasst werden.</li>
-			<li><strong>Erfassung</strong>: Startnummer → Fehler → Zeit, jeweils mit Enter. Zeiten der Zeitmessung lassen sich per Klick oder Strg + T übernehmen.</li>
+			<li><strong>Nennung</strong>: Fahrer suchen und mit Enter nennen – oder eine Nennliste (CSV/Excel) je Klasse importieren. Abweichungen zur Datenbank werden im Seitenvergleich geklärt.</li>
+			<li><strong>Erfassung</strong>: Fehler → Fehler → Zeit, jeweils mit Enter; danach springt die Maske zum nächsten Start (je zwei Fahrer Training und Wertung 1, danach alle Wertung 2). DNS/DSQ mit Kommentar. Zeiten der Zeitmessung per Klick oder Strg + T.</li>
+			<li><strong>Korrekturen</strong>: erfasste Läufe in der Erfassung oder über den Stift in der Ergebnisliste ändern – immer mit Begründung, alle Änderungen werden protokolliert.</li>
 			<li><strong>Ergebnisse & Mannschaft</strong>: werden laufend berechnet.</li>
 			<li><strong>Drucken & Export</strong>: Start- und Ergebnislisten, Mannschaftswertung, Urkunden, ZP-Datei.</li>
 		</ol>
@@ -47,7 +48,7 @@
 			<li>Punkte = (Teilnehmer − Platz) × 10 / Teilnehmer + 1.</li>
 			<li>Sportabzeichenpunkte: Platz 1 = 6, Platz 2–10 = (12 − Platz) / 2, ab Platz 11 = 0,5.</li>
 			<li>Mannschaft: die besten 6 Punktergebnisse je Verein über alle Klassen.</li>
-			<li>Fahrer „außer Wertung" (niW) und Fahrer ohne beide Wertungsläufe erhalten keinen Platz.</li>
+			<li>Fahrer „außer Wertung" (niW), mit DNS/DSQ in einem Wertungslauf oder ohne beide Wertungsläufe erhalten keinen Platz.</li>
 		</ul>
 	</section>
 

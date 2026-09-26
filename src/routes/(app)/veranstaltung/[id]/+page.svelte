@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { ArrowRight, CircleCheck, ClipboardList, Timer } from '@lucide/svelte';
-	import { LAUF_KURZ, WERTUNGSLAEUFE, type LaufNr } from '$lib/domain/typen';
+	import { LAUF_KURZ, laufErfasst, WERTUNGSLAEUFE, type LaufNr } from '$lib/domain/typen';
 
 	let { data } = $props();
 	const s = $derived(data.store);
 
 	function erfasst(zeilen: typeof s.klassenWertungen[number]['zeilen'], nr: LaufNr) {
-		return zeilen.filter((z) => z.ergebnisse[nr] !== null).length;
+		return zeilen.filter((z) => laufErfasst(z.starter.laeufe[nr])).length;
 	}
 	const gesamt = $derived({
 		starter: s.starter.length,
-		fertig: s.klassenWertungen.reduce((a, k) => a + k.zeilen.filter((z) => z.gesamt !== null).length, 0)
+		fertig: s.klassenWertungen.reduce((a, k) => a + k.zeilen.filter((z) => laufErfasst(z.starter.laeufe[1]) && laufErfasst(z.starter.laeufe[2])).length, 0)
 	});
 </script>
 
@@ -60,7 +60,7 @@
 		<div class="card p-5">
 			<p class="text-xs font-semibold tracking-wide text-muted uppercase">Fortschritt</p>
 			<p class="mt-2 text-3xl font-bold tabular">{gesamt.fertig}<span class="text-lg text-muted"> / {gesamt.starter}</span></p>
-			<p class="text-sm text-muted">Fahrer mit beiden Wertungsläufen</p>
+			<p class="text-sm text-muted">Fahrer mit beiden Wertungsläufen (inkl. DNS/DSQ)</p>
 			<div class="mt-3 h-2 overflow-hidden rounded-full bg-sunken">
 				<div class="h-full bg-accent transition-all" style:width="{gesamt.starter ? (gesamt.fertig / gesamt.starter) * 100 : 0}%"></div>
 			</div>

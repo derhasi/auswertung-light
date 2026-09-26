@@ -6,10 +6,10 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import * as schema from './schema';
-import { fahrer, klasse, lauf, start, veranstaltung } from './schema';
+import { fahrer, fahrerVersion, klasse, lauf, laufAenderung, start, veranstaltung } from './schema';
 import type { SqlTreiber } from './treiber';
 import type { FahrerDaten } from '$lib/domain/fahrer-import';
-import type { Klasse, LaufEingabe, LaufNr, Starter } from '$lib/domain/typen';
+import type { Klasse, LaufEingabe, LaufNr, LaufStatus, Starter } from '$lib/domain/typen';
 import { STANDARD_ZEITQUELLE, type ZeitquelleEinstellung } from '$lib/domain/zeitquelle';
 
 export type Db = SqliteRemoteDatabase<typeof schema>;
@@ -31,6 +31,62 @@ export function erstelleDb(treiber: SqlTreiber): Db {
 export interface Fahrer extends FahrerDaten {
 	id: number;
 	geaendertAm: string;
+}
+
+export interface FahrerVersion extends FahrerDaten {
+	id: number;
+	fahrerId: number;
+	anlass: string;
+	erstelltAm: string;
+}
+
+/** Verweis auf einen Fahrer und seine aktuelle Version. */
+export interface FahrerRef {
+	id: number;
+	versionId: number;
+}
+
+export interface LaufAenderung {
+	id: number;
+	startId: number;
+	nr: LaufNr;
+	vorher: LaufEingabe | null;
+	nachher: LaufEingabe | null;
+	kommentar: string;
+	zeitpunkt: string;
+}
+
+const FAHRER_FELDER: (keyof FahrerDaten)[] = ['lizenz', 'klasse', 'nachname', 'vorname', 'rookieJahr', 'plz', 'ort', 'verein', 'geburtsdatum', 'alteLizenz'];
+
+function fahrerDaten(f: FahrerDaten): FahrerDaten {
+	return Object.fromEntries(FAHRER_FELDER.map((feld) => [feld, f[feld] ?? (feld === 'rookieJahr' ? null : '')])) as unknown as FahrerDaten;
+}
+
+function fahrerGeaendert(a: FahrerDaten, b: FahrerDaten): boolean {
+	return FAHRER_FELDER.some((feld) => (a[feld] ?? '') !== (b[feld] ?? ''));
+}
+
+function zuLaufEingabe(l: schema.LaufZeile): LaufEingabe {
+	return {
+		fehler1: l.fehler1,
+		fehler2: l.fehler2,
+		zeit: l.zeit,
+		importId: l.importId,
+		status: (l.status || 'ok') as LaufStatus,
+		kommentar: l.kommentar
+	};
+}
+
+/** Hat sich der Lauf inhaltlich geändert (Fehler, Zeit, Status, Kommentar)? */
+function laufGeaendert(a: LaufEingabe | null, b: LaufEingabe | null): boolean {
+	if (!a || !b) return a !== b;
+	return (
+		(a.fehler1 || 0) !== (b.fehler1 || 0) ||
+		(a.fehler2 || 0) !== (b.fehler2 || 0) ||
+		(a.zeit ?? null) !== (b.zeit ?? null) ||
+		(a.status ?? 'ok') !== (b.status ?? 'ok') ||
+		(a.kommentar ?? '') !== (b.kommentar ?? '')
+	);
 }
 
 export interface Veranstaltung {
@@ -72,6 +128,7 @@ export interface VeranstaltungsDaten {
 export type StartDaten = Omit<Starter, 'id' | 'laeufe'>;
 
 export interface FahrerStart {
+	fahrerVersionId: number | null;
 	veranstaltungId: number;
 	veranstaltung: string;
 	datum: string;
@@ -127,10 +184,12 @@ function zuStarter(z: schema.StartZeile, laeufe: schema.LaufZeile[] = []): Start
 		ort: z.ort,
 		rookieJahr: z.rookieJahr,
 		ausserWertung: Boolean(z.ausserWertung),
+		fahrerId: z.fahrerId,
+		fahrerVersionId: z.fahrerVersionId,
 		laeufe: {}
 	};
 	for (const l of laeufe) {
-		s.laeufe[l.nr as LaufNr] = { fehler1: l.fehler1, fehler2: l.fehler2, zeit: l.zeit, importId: l.importId };
+		s.laeufe[l.nr as LaufNr] = zuLaufEingabe(l);
 	}
 	return s;
 }
@@ -155,76 +214,125 @@ export class Repository {
 		return this.db.select().from(fahrer).orderBy(asc(fahrer.nachname), asc(fahrer.vorname));
 	}
 
-	async fahrerSpeichern(daten: FahrerDaten & { id?: number }): Promise<number> {
-		const { id, ...werte } = daten;
-		try {
-			if (id) {
-				await this.db
-					.update(fahrer)
-					.set({ ...werte, geaendertAm: jetzt() })
-					.where(eq(fahrer.id, id));
-				return id;
-			}
-			const [neu] = await this.db
-				.insert(fahrer)
-				.values({ ...werte, geaendertAm: jetzt() })
-				.returning({ id: fahrer.id });
-			return neu.id;
-		} catch (e) {
-			eindeutigkeitsFehler(e, `Die Lizenz ${daten.lizenz} ist bereits vergeben.`);
-		}
+	private async versionAnlegen(fahrerId: number, daten: FahrerDaten, anlass: string, zeitpunkt = jetzt()): Promise<number> {
+		const [v] = await this.db
+			.insert(fahrerVersion)
+			.values({ ...fahrerDaten(daten), fahrerId, anlass, erstelltAm: zeitpunkt })
+			.returning({ id: fahrerVersion.id });
+		return v.id;
 	}
 
+	async aktuelleVersion(fahrerId: number): Promise<number | null> {
+		const [v] = await this.db
+			.select({ id: fahrerVersion.id })
+			.from(fahrerVersion)
+			.where(eq(fahrerVersion.fahrerId, fahrerId))
+			.orderBy(sql`${fahrerVersion.id} desc`)
+			.limit(1);
+		return v?.id ?? null;
+	}
+
+	/**
+	 * Legt einen Fahrer an oder aktualisiert ihn. Jede inhaltliche Änderung
+	 * erzeugt eine neue Version; ältere Versionen bleiben erhalten.
+	 */
+	async fahrerSpeichern(daten: FahrerDaten & { id?: number }, anlass?: string): Promise<FahrerRef> {
+		const { id, ...rest } = daten;
+		const werte = fahrerDaten(rest as FahrerDaten);
+		const zeitpunkt = jetzt();
+		if (id) {
+			const [alt] = await this.db.select().from(fahrer).where(eq(fahrer.id, id));
+			if (!alt) throw new Error('Der Fahrer wurde nicht gefunden.');
+			const versionId = await this.aktuelleVersion(id);
+			if (!fahrerGeaendert(alt, werte) && versionId) return { id, versionId };
+			await this.db
+				.update(fahrer)
+				.set({ ...werte, geaendertAm: zeitpunkt })
+				.where(eq(fahrer.id, id));
+			return { id, versionId: await this.versionAnlegen(id, werte, anlass ?? 'bearbeitet', zeitpunkt) };
+		}
+		const [neu] = await this.db
+			.insert(fahrer)
+			.values({ ...werte, geaendertAm: zeitpunkt })
+			.returning({ id: fahrer.id });
+		return { id: neu.id, versionId: await this.versionAnlegen(neu.id, werte, anlass ?? 'angelegt', zeitpunkt) };
+	}
+
+	async fahrerVersionen(fahrerId: number): Promise<FahrerVersion[]> {
+		const zeilen = await this.db
+			.select()
+			.from(fahrerVersion)
+			.where(eq(fahrerVersion.fahrerId, fahrerId))
+			.orderBy(sql`${fahrerVersion.id} desc`);
+		return zeilen;
+	}
+
+	/** Löscht Fahrer aus der Datenbank. Ihre Versionen bleiben für bestehende Nennungen erhalten. */
 	async fahrerLoeschen(ids: number[]): Promise<void> {
 		if (ids.length) await this.db.delete(fahrer).where(inArray(fahrer.id, ids));
 	}
 
-	/** Gleicht die Fahrerdatenbank mit einer Importliste ab (neu / geändert / unverändert). */
+	/**
+	 * Gleicht die Fahrerdatenbank mit der ZP-Fahrerliste ab (neu / geändert / unverändert).
+	 * Zuordnung über die Lizenz; tragen mehrere Fahrer dieselbe Lizenz, wird der mit
+	 * gleichem Namen aktualisiert.
+	 */
 	async fahrerImportieren(liste: FahrerDaten[]): Promise<{ neu: number; aktualisiert: number; unveraendert: number }> {
-		const vorhanden = new Map((await this.fahrerListe()).map((f) => [f.lizenz, f]));
-		const felder: (keyof FahrerDaten)[] = ['klasse', 'nachname', 'vorname', 'rookieJahr', 'plz', 'ort', 'verein', 'geburtsdatum', 'alteLizenz'];
-		let neu = 0;
+		const nachLizenz = new Map<string, Fahrer[]>();
+		for (const f of await this.fahrerListe()) nachLizenz.set(f.lizenz, [...(nachLizenz.get(f.lizenz) ?? []), f]);
+		const name = (f: FahrerDaten) => `${f.nachname} ${f.vorname}`.trim().toLocaleLowerCase('de-DE');
 		let aktualisiert = 0;
-		const schreiben: FahrerDaten[] = [];
+		let unveraendert = 0;
+		const neue: FahrerDaten[] = [];
 		for (const f of liste) {
-			const alt = vorhanden.get(f.lizenz);
-			if (!alt) neu++;
-			else if (felder.some((feld) => (alt[feld] ?? '') !== (f[feld] ?? ''))) aktualisiert++;
-			else continue;
-			schreiben.push(f);
+			const kandidaten = nachLizenz.get(f.lizenz) ?? [];
+			const alt = kandidaten.find((k) => name(k) === name(f)) ?? kandidaten[0];
+			if (!alt) neue.push(fahrerDaten(f));
+			else if (fahrerGeaendert(alt, fahrerDaten(f))) {
+				await this.fahrerSpeichern({ ...f, id: alt.id }, 'ZP-Import');
+				aktualisiert++;
+			} else unveraendert++;
 		}
 		const zeitpunkt = jetzt();
-		for (let i = 0; i < schreiben.length; i += 50) {
-			await this.db
+		for (let i = 0; i < neue.length; i += 50) {
+			const block = neue.slice(i, i + 50);
+			const ids = await this.db
 				.insert(fahrer)
-				.values(schreiben.slice(i, i + 50).map((f) => ({ ...f, geaendertAm: zeitpunkt })))
-				.onConflictDoUpdate({
-					target: fahrer.lizenz,
-					set: Object.fromEntries(
-						[...felder, 'geaendertAm' as const].map((feld) => [feld, sql.raw(`excluded.${fahrer[feld].name}`)])
-					)
-				});
+				.values(block.map((f) => ({ ...f, geaendertAm: zeitpunkt })))
+				.returning({ id: fahrer.id });
+			await this.db
+				.insert(fahrerVersion)
+				.values(block.map((f, j) => ({ ...f, fahrerId: ids[j].id, anlass: 'ZP-Import', erstelltAm: zeitpunkt })));
 		}
-		return { neu, aktualisiert, unveraendert: liste.length - neu - aktualisiert };
+		return { neu: neue.length, aktualisiert, unveraendert };
 	}
 
-	/** In welchen Veranstaltungen ist welche Lizenz gestartet? */
-	async fahrerStarts(): Promise<Map<string, FahrerStart[]>> {
+	/** In welchen Veranstaltungen ist welcher Fahrer (nach Fahrer-ID) gestartet? */
+	async fahrerStarts(): Promise<Map<number, FahrerStart[]>> {
 		const [starts, veranstaltungen, klassen] = await Promise.all([
-			this.db.select({ lizenz: start.lizenz, vid: start.veranstaltungId, kid: start.klasseId, nr: start.startnummer }).from(start),
+			this.db
+				.select({ fid: start.fahrerId, fvid: start.fahrerVersionId, vid: start.veranstaltungId, kid: start.klasseId, nr: start.startnummer })
+				.from(start),
 			this.db.select().from(veranstaltung),
 			this.db.select().from(klasse)
 		]);
 		const vMap = new Map(veranstaltungen.map((v) => [v.id, v]));
 		const kMap = new Map(klassen.map((k) => [k.id, k]));
-		const ergebnis = new Map<string, FahrerStart[]>();
+		const ergebnis = new Map<number, FahrerStart[]>();
 		for (const s of starts) {
-			if (!s.lizenz) continue;
+			if (!s.fid) continue;
 			const v = vMap.get(s.vid);
 			if (!v) continue;
-			const liste = ergebnis.get(s.lizenz) ?? [];
-			liste.push({ veranstaltungId: v.id, veranstaltung: v.name, datum: v.datum, klasse: kMap.get(s.kid)?.kuerzel ?? '', startnummer: s.nr });
-			ergebnis.set(s.lizenz, liste);
+			const liste = ergebnis.get(s.fid) ?? [];
+			liste.push({
+				fahrerVersionId: s.fvid,
+				veranstaltungId: v.id,
+				veranstaltung: v.name,
+				datum: v.datum,
+				klasse: kMap.get(s.kid)?.kuerzel ?? '',
+				startnummer: s.nr
+			});
+			ergebnis.set(s.fid, liste);
 		}
 		for (const liste of ergebnis.values()) liste.sort((a, b) => b.datum.localeCompare(a.datum));
 		return ergebnis;
@@ -318,7 +426,10 @@ export class Repository {
 
 	async veranstaltungLoeschen(id: number): Promise<void> {
 		const starts = await this.db.select({ id: start.id }).from(start).where(eq(start.veranstaltungId, id));
-		if (starts.length) await this.db.delete(lauf).where(inArray(lauf.startId, starts.map((s) => s.id)));
+		if (starts.length) {
+			await this.db.delete(laufAenderung).where(inArray(laufAenderung.startId, starts.map((s) => s.id)));
+			await this.db.delete(lauf).where(inArray(lauf.startId, starts.map((s) => s.id)));
+		}
 		await this.db.delete(start).where(eq(start.veranstaltungId, id));
 		await this.db.delete(klasse).where(eq(klasse.veranstaltungId, id));
 		await this.db.delete(veranstaltung).where(eq(veranstaltung.id, id));
@@ -349,7 +460,8 @@ export class Repository {
 			const klasseId = klassenIds.get(s.klasseId);
 			if (!klasseId) continue;
 			const { id: _id, laeufe, ...rest } = s;
-			const neuerStart = await this.startAnlegen(neu.id, { ...rest, klasseId });
+			// Fahrer-IDs stammen aus einer anderen Datenbank und werden nicht übernommen.
+			const neuerStart = await this.startAnlegen(neu.id, { ...rest, klasseId, fahrerId: null, fahrerVersionId: null });
 			for (const [nr, eingabe] of Object.entries(laeufe)) {
 				if (eingabe) await this.laufSpeichern(neuerStart.id, Number(nr) as LaufNr, eingabe);
 			}
@@ -400,26 +512,85 @@ export class Repository {
 	}
 
 	async startLoeschen(id: number): Promise<void> {
+		await this.db.delete(laufAenderung).where(eq(laufAenderung.startId, id));
 		await this.db.delete(lauf).where(eq(lauf.startId, id));
 		await this.db.delete(start).where(eq(start.id, id));
 	}
 
-	/** Speichert einen Lauf; `null` löscht die Eingabe. */
-	async laufSpeichern(startId: number, nr: LaufNr, eingabe: LaufEingabe | null): Promise<void> {
-		if (!eingabe) {
-			await this.db.delete(lauf).where(and(eq(lauf.startId, startId), eq(lauf.nr, nr)));
-			return;
+	/**
+	 * Speichert einen Lauf; `null` löscht die Eingabe.
+	 * Wird ein bereits erfasster Lauf geändert oder gelöscht, ist ein Kommentar
+	 * Pflicht – die Änderung wird mit altem und neuem Stand protokolliert.
+	 */
+	async laufSpeichern(startId: number, nr: LaufNr, eingabe: LaufEingabe | null, aenderungsKommentar?: string): Promise<LaufEingabe | null> {
+		const [altZeile] = await this.db
+			.select()
+			.from(lauf)
+			.where(and(eq(lauf.startId, startId), eq(lauf.nr, nr)));
+		const vorher = altZeile ? zuLaufEingabe(altZeile) : null;
+		const status = eingabe?.status ?? 'ok';
+		const nachher: LaufEingabe | null = eingabe
+			? {
+					fehler1: status === 'ok' ? eingabe.fehler1 || 0 : 0,
+					fehler2: status === 'ok' ? eingabe.fehler2 || 0 : 0,
+					zeit: status === 'ok' ? eingabe.zeit : null,
+					importId: status === 'ok' ? (eingabe.importId ?? null) : null,
+					status,
+					kommentar: eingabe.kommentar?.trim() || null
+				}
+			: null;
+		if (nachher && status !== 'ok' && !nachher.kommentar) {
+			throw new Error('Für DNS oder DSQ ist ein Kommentar erforderlich.');
 		}
-		const werte = {
-			fehler1: eingabe.fehler1 || 0,
-			fehler2: eingabe.fehler2 || 0,
-			zeit: eingabe.zeit,
-			importId: eingabe.importId ?? null,
-			geaendertAm: jetzt()
-		};
-		await this.db
-			.insert(lauf)
-			.values({ startId, nr, ...werte })
-			.onConflictDoUpdate({ target: [lauf.startId, lauf.nr], set: werte });
+		const geaendert = vorher !== null && laufGeaendert(vorher, nachher);
+		if (geaendert && !aenderungsKommentar?.trim()) {
+			throw new Error('Bitte begründen Sie die Änderung des bereits erfassten Laufs.');
+		}
+
+		if (!nachher) {
+			await this.db.delete(lauf).where(and(eq(lauf.startId, startId), eq(lauf.nr, nr)));
+		} else {
+			const werte = {
+				fehler1: nachher.fehler1,
+				fehler2: nachher.fehler2,
+				zeit: nachher.zeit,
+				importId: nachher.importId ?? null,
+				status,
+				kommentar: nachher.kommentar ?? null,
+				geaendertAm: jetzt()
+			};
+			await this.db
+				.insert(lauf)
+				.values({ startId, nr, ...werte })
+				.onConflictDoUpdate({ target: [lauf.startId, lauf.nr], set: werte });
+		}
+		if (geaendert) {
+			await this.db.insert(laufAenderung).values({
+				startId,
+				nr,
+				vorher: JSON.stringify(vorher),
+				nachher: nachher ? JSON.stringify(nachher) : null,
+				kommentar: aenderungsKommentar!.trim(),
+				zeitpunkt: jetzt()
+			});
+		}
+		return nachher;
+	}
+
+	async laufAenderungen(startId: number): Promise<LaufAenderung[]> {
+		const zeilen = await this.db
+			.select()
+			.from(laufAenderung)
+			.where(eq(laufAenderung.startId, startId))
+			.orderBy(sql`${laufAenderung.id} desc`);
+		return zeilen.map((z) => ({
+			id: z.id,
+			startId: z.startId,
+			nr: z.nr as LaufNr,
+			vorher: z.vorher ? (JSON.parse(z.vorher) as LaufEingabe) : null,
+			nachher: z.nachher ? (JSON.parse(z.nachher) as LaufEingabe) : null,
+			kommentar: z.kommentar,
+			zeitpunkt: z.zeitpunkt
+		}));
 	}
 }

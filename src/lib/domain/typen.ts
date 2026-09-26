@@ -29,13 +29,39 @@ export interface Regeln {
 
 export const STANDARD_REGELN: Regeln = { strafe1: 2, strafe2: 10, mannschaftAnzahl: 6 };
 
+/** ok = gefahren · dns = nicht gestartet · dsq = disqualifiziert */
+export type LaufStatus = 'ok' | 'dns' | 'dsq';
+
+export const LAUF_STATUS_NAMEN: Record<LaufStatus, string> = {
+	ok: 'Gefahren',
+	dns: 'DNS – nicht gestartet',
+	dsq: 'DSQ – disqualifiziert'
+};
+
 export interface LaufEingabe {
 	fehler1: number;
 	fehler2: number;
-	/** Gefahrene Zeit in Sekunden; `null` = noch keine Zeit erfasst. */
+	/** Gefahrene Zeit in Sekunden; `null` = noch keine Zeit erfasst (bei DNS/DSQ immer `null`). */
 	zeit: number | null;
 	/** Kennung aus der Zeitmessung, falls die Zeit importiert wurde. */
 	importId?: string | null;
+	/** Fehlt = 'ok'. */
+	status?: LaufStatus;
+	/** Pflicht bei DNS/DSQ, sonst optional. */
+	kommentar?: string | null;
+}
+
+/** Ist für diesen Lauf ein Ergebnis erfasst (Zeit oder DNS/DSQ)? */
+export function laufErfasst(lauf: LaufEingabe | undefined): boolean {
+	if (!lauf) return false;
+	return (lauf.status ?? 'ok') !== 'ok' || (lauf.zeit !== null && lauf.zeit !== undefined);
+}
+
+/** Erlaubte Lizenznummern: Buchstaben, Ziffern sowie - / _ */
+export const LIZENZ_MUSTER = /^[A-Za-z0-9\-\/_]+$/;
+
+export function lizenzGueltig(lizenz: string): boolean {
+	return LIZENZ_MUSTER.test(lizenz.trim());
 }
 
 export interface Klasse {
@@ -60,6 +86,9 @@ export interface Starter {
 	rookieJahr: number | null;
 	/** „niW" – startet außer Wertung. */
 	ausserWertung: boolean;
+	/** Verknüpfung zur Fahrerdatenbank und zur Version der Fahrerdaten bei der Nennung. */
+	fahrerId?: number | null;
+	fahrerVersionId?: number | null;
 	laeufe: Partial<Record<LaufNr, LaufEingabe>>;
 }
 
