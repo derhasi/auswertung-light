@@ -176,8 +176,8 @@ export function fahrerCsvZeile(f: FahrerDaten): string[] {
 	return [f.lizenz, f.klasse, f.nachname, f.vorname, f.rookieJahr ? String(f.rookieJahr) : '', f.plz, f.ort, f.verein, formatDatum(f.geburtsdatum), f.alteLizenz];
 }
 
-/** Felder, deren Abweichung beim Import als Konflikt gilt (die Klasse ändert sich regulär). */
-export const VERGLEICHS_FELDER = ['nachname', 'vorname', 'verein', 'plz', 'ort', 'geburtsdatum'] as const satisfies readonly (keyof FahrerDaten)[];
+/** Felder, die bei einem Konflikt abgeglichen werden müssen (die Klasse ändert sich regulär). */
+export const VERGLEICHS_FELDER = ['lizenz', 'nachname', 'vorname', 'verein', 'plz', 'ort', 'geburtsdatum'] as const satisfies readonly (keyof FahrerDaten)[];
 export type VergleichsFeld = (typeof VERGLEICHS_FELDER)[number];
 
 export const FELD_NAMEN: Record<keyof FahrerDaten, string> = {

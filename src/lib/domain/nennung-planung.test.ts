@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FahrerDaten, NennungsZeile } from './fahrer-import';
-import { importPlanen, zusammengefuehrt, type DbFahrer } from './nennung-import';
+import { importPlanen, konfliktGeloest, offeneFelder, zusammengefuehrt, type DbFahrer } from './nennung-import';
 import { starter } from './testdaten';
 import type { Klasse } from './typen';
 
@@ -39,12 +39,29 @@ describe('Nennungs-Import planen', () => {
 			klassen,
 			null
 		);
-		expect(plan.map((p) => [p.zeile.lizenz, p.art, p.bestand?.id ?? null, p.unterschiede, p.uebernehmen])).toEqual([
-			['A1', 'bekannt', 10, [], true],
-			['B2', 'konflikt', 11, ['verein'], true],
-			['N4', 'neu', null, [], true],
-			['G3', 'bereits-gemeldet', 12, [], false]
+		expect(plan.map((p) => [p.zeile.lizenz, p.art, p.treffer, p.bestand?.id ?? null, p.unterschiede, p.uebernehmen])).toEqual([
+			['A1', 'bekannt', 'lizenz', 10, [], true],
+			['B2', 'konflikt', 'lizenz', 11, ['verein'], true],
+			['N4', 'neu', null, null, [], true],
+			['G3', 'bereits-gemeldet', 'lizenz', 12, [], false]
 		]);
+	});
+
+	it('löst Konflikte auch bei gleichem Namen mit anderer Lizenz aus', () => {
+		const [p] = importPlanen([zeile('Z9', { nachname: 'Bauer', ort: 'Anderswo' })], db, [], klassen, 1);
+		expect([p.art, p.treffer, p.bestand?.id, p.unterschiede]).toEqual(['konflikt', 'name', 11, ['lizenz', 'ort']]);
+	});
+
+	it('verlangt eine Entscheidung für jedes abweichende Feld', () => {
+		const [p] = importPlanen([zeile('B2', { nachname: 'Bauer', verein: 'MSC Neu', ort: 'Neustadt' })], db, [], klassen, 1);
+		expect(konfliktGeloest(p)).toBe(false);
+		expect(offeneFelder(p)).toEqual(['verein', 'ort']);
+		expect(konfliktGeloest({ ...p, auswahl: { verein: 'import' } })).toBe(false);
+		expect(konfliktGeloest({ ...p, auswahl: { verein: 'import', ort: 'bestand' } })).toBe(true);
+		// Bei Lizenz-Treffer ist „anderer Fahrer“ nicht möglich (Lizenzen sind eindeutig)
+		expect(konfliktGeloest({ ...p, loesung: 'neuer-fahrer' })).toBe(false);
+		const [n] = importPlanen([zeile('Z9', { nachname: 'Bauer' })], db, [], klassen, 1);
+		expect(konfliktGeloest({ ...n, loesung: 'neuer-fahrer' })).toBe(true);
 	});
 
 	it('vergibt Startnummern: gewünschte wenn frei, sonst nach der höchsten der Klasse', () => {
@@ -74,7 +91,7 @@ describe('Nennungs-Import planen', () => {
 	it('ordnet Fahrer ohne Lizenz über den Namen zu', () => {
 		const ohne: DbFahrer[] = [{ id: 20, ...daten('', { nachname: 'Gast', vorname: 'Gustav' }) }];
 		const [p] = importPlanen([zeile('', { nachname: 'gast', vorname: 'Gustav' })], ohne, [], klassen, 1);
-		expect([p.art, p.bestand?.id]).toEqual(['bekannt', 20]);
+		expect([p.art, p.treffer, p.bestand?.id]).toEqual(['bekannt', 'name', 20]);
 	});
 
 	it('führt Datensätze feldweise zusammen', () => {
@@ -82,5 +99,6 @@ describe('Nennungs-Import planen', () => {
 		expect(p.unterschiede).toEqual(['verein', 'ort']);
 		const m = zusammengefuehrt({ ...p, auswahl: { verein: 'import', ort: 'bestand' } });
 		expect([m.verein, m.ort, m.lizenz]).toEqual(['MSC Neu', 'Musterstadt', 'B2']);
+		expect('id' in m).toBe(false);
 	});
 });

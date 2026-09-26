@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { naechsterStart, offeneStarts, startReihenfolge } from './reihenfolge';
+import { klasseKomplett, naechsterStart, offeneStarts, startReihenfolge } from './reihenfolge';
 import { lauf, starter } from './testdaten';
 
 const kurz = (liste: { starter: { startnummer: number }; lauf: number }[]) =>
@@ -16,11 +16,24 @@ describe('Startreihenfolge', () => {
 		]);
 	});
 
-	it('sortiert nach Klassenreihenfolge und Startnummer', () => {
-		const a = starter({ startnummer: 1, klasseId: 20 });
-		const b = starter({ startnummer: 2, klasseId: 10 });
-		const reihenfolge = startReihenfolge([a, b], new Map([[10, 1], [20, 2]]));
-		expect(kurz(reihenfolge).slice(0, 2)).toEqual(['2T', '1T']);
+	it('rotiert Klasse für Klasse in der Reihenfolge der Klassen', () => {
+		const k1 = [1, 2, 3].map((nr) => starter({ startnummer: nr, klasseId: 20 }));
+		const k2 = [10, 11].map((nr) => starter({ startnummer: nr, klasseId: 10 }));
+		const reihenfolge = startReihenfolge([...k1, ...k2], new Map([[10, 1], [20, 2]]));
+		expect(kurz(reihenfolge)).toEqual([
+			'10T', '11T', '10W1', '11W1', '10W2', '11W2',
+			'1T', '2T', '1W1', '2W1', '3T', '3W1', '1W2', '2W2', '3W2'
+		]);
+	});
+
+	it('erkennt, wann eine Klasse komplett erfasst ist', () => {
+		const voll = { 0: lauf(1), 1: lauf(1), 2: lauf(1) };
+		const a = starter({ startnummer: 1, klasseId: 1, laeufe: voll });
+		const b = starter({ startnummer: 2, klasseId: 1, laeufe: { ...voll, 2: { fehler1: 0, fehler2: 0, zeit: null, status: 'dns', kommentar: 'x' } } });
+		const c = starter({ startnummer: 3, klasseId: 2, laeufe: { 0: lauf(1) } });
+		expect(klasseKomplett([a, b, c], 1)).toBe(true);
+		expect(klasseKomplett([a, b, c], 2)).toBe(false);
+		expect(klasseKomplett([a, b, c], 3)).toBe(false);
 	});
 
 	it('springt zum nächsten offenen Start und überspringt Erfasstes', () => {

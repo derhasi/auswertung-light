@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
-	import { Ban, Eraser, FileClock, ListOrdered, RefreshCw, Save, TriangleAlert } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
+	import { ArrowRight, Ban, Eraser, FileClock, Flag, ListOrdered, RefreshCw, Save, Trophy, TriangleAlert } from '@lucide/svelte';
 	import {
 		anzeigeName,
 		LAEUFE,
@@ -12,9 +13,11 @@
 		type LaufStatus,
 		type Starter
 	} from '$lib/domain/typen';
-	import { naechsterStart, offeneStarts, type StartPlatz } from '$lib/domain/reihenfolge';
+	import { klasseKomplett, naechsterStart, offeneStarts, type StartPlatz } from '$lib/domain/reihenfolge';
 	import { laufErgebnis } from '$lib/domain/wertung';
 	import { formatZeit, parseZeit } from '$lib/domain/zahlen';
+	import type { Klasse } from '$lib/domain/typen';
+	import Dialog from '$lib/ui/Dialog.svelte';
 	import type { GemesseneZeit } from '$lib/domain/zeitquelle';
 	import { Zeitmessung } from '$lib/stores/zeitmessung.svelte';
 	import { istDesktop } from '$lib/plattform';
@@ -34,6 +37,8 @@
 	let kommentar = $state('');
 	let aenderungsgrund = $state('');
 	let letzte = $state<{ startId: number; lauf: LaufNr }[]>([]);
+	/** Zwischenschritt nach dem letzten Lauf einer Klasse. */
+	let klassenAbschluss = $state<{ klasse: Klasse; naechste: StartPlatz | null } | null>(null);
 
 	let nummerFeld: HTMLInputElement | undefined = $state();
 	let fehler1Feld: HTMLInputElement | undefined = $state();
@@ -160,9 +165,19 @@
 			return;
 		}
 		const gespeichert = { starterId: starter.id, lauf };
+		const klasseId = starter.klasseId;
+		const klasseVorherKomplett = klasseKomplett(s.starter, klasseId);
 		try {
 			await s.laufSpeichern(starter.id, lauf, eingabe, istKorrektur ? aenderungsgrund : undefined);
 			letzte = [{ startId: starter.id, lauf }, ...letzte.filter((l) => !(l.startId === starter.id && l.lauf === lauf))].slice(0, 10);
+			// Letzter Lauf der Klasse: Zwischenschritt statt direkt weiter
+			if (!klasseVorherKomplett && klasseKomplett(s.starter, klasseId)) {
+				const klasse = s.klassen.find((k) => k.id === klasseId)!;
+				klassenAbschluss = { klasse, naechste: naechsterStart(s.reihenfolge, gespeichert) };
+				nummerText = '';
+				formularLaden(undefined);
+				return;
+			}
 			// Zum nächsten offenen Start in der Startreihenfolge springen
 			const naechster = naechsterStart(s.reihenfolge, gespeichert);
 			if (naechster) await platzLaden(naechster);
@@ -250,7 +265,8 @@
 	}
 
 	function globaleTasten(e: KeyboardEvent) {
-		if (e.key === 'Escape' && !document.querySelector('dialog[open]')) {
+		if (klassenAbschluss || document.querySelector('dialog[open]')) return;
+		if (e.key === 'Escape') {
 			zuruecksetzen();
 			return;
 		}
@@ -266,6 +282,17 @@
 			speichern();
 		}
 	}
+
+	async function naechsteKlasse() {
+		const naechste = klassenAbschluss?.naechste;
+		klassenAbschluss = null;
+		if (naechste) await platzLaden(naechste);
+		else await zuruecksetzen();
+	}
+
+	const abschlussZeilen = $derived(
+		klassenAbschluss ? (s.klassenWertungen.find((k) => k.klasse.id === klassenAbschluss!.klasse.id)?.zeilen ?? []) : []
+	);
 
 	function laufText(l: LaufEingabe | undefined): string {
 		if (!l) return '–';
@@ -453,7 +480,7 @@
 					{/each}
 				</ul>
 			{/if}
-			<p class="border-t border-line px-4 py-2 text-[11px] text-muted">Reihenfolge: je zwei Fahrer Training und Wertung 1, danach alle Wertung 2.</p>
+			<p class="border-t border-line px-4 py-2 text-[11px] text-muted">Reihenfolge je Klasse: zwei Fahrer Training und Wertung 1, danach alle Wertung 2.</p>
 		</section>
 
 		<section class="card overflow-hidden">
@@ -502,3 +529,43 @@
 		</section>
 	</aside>
 </div>
+
+<Dialog offen={klassenAbschluss !== null} titel="{klassenAbschluss?.klasse.name ?? ''} komplett erfasst" breite="max-w-md" onschliessen={() => (klassenAbschluss = null)}>
+	{#if klassenAbschluss}
+		<div class="flex items-start gap-3">
+			<Flag class="mt-0.5 shrink-0 text-accent" />
+			<p class="text-sm">Alle Läufe der {klassenAbschluss.klasse.name} sind erfasst. Die Rangliste ist fertig berechnet.</p>
+		</div>
+		<ol class="mt-4 divide-y divide-line rounded-lg border border-line text-sm">
+			{#each abschlussZeilen.filter((z) => z.platz !== null).slice(0, 3) as z (z.starter.id)}
+				<li class="flex items-center gap-3 px-3 py-2">
+					<span class="w-6 font-bold tabular">{z.platz}.</span>
+					<span class="flex-1">{anzeigeName(z.starter)}</span>
+					<span class="font-semibold tabular">{formatZeit(z.gesamt)} s</span>
+				</li>
+			{:else}
+				<li class="px-3 py-2 text-muted">Keine gewerteten Fahrer.</li>
+			{/each}
+		</ol>
+		{#if klassenAbschluss.naechste}
+			<p class="mt-3 text-xs text-muted">
+				Als Nächstes: Nr. {klassenAbschluss.naechste.starter.startnummer} · {s.klasseVon(klassenAbschluss.naechste.starter)?.name} · {LAUF_NAMEN[klassenAbschluss.naechste.lauf]}
+			</p>
+		{:else}
+			<p class="mt-3 text-xs text-ok">Alle Klassen sind vollständig erfasst.</p>
+		{/if}
+	{/if}
+	{#snippet aktionen()}
+		<button class="btn" onclick={() => klassenAbschluss && goto(`/veranstaltung/${s.id}/ergebnisse?klasse=${klassenAbschluss.klasse.id}`)}>
+			<Trophy size={16} /> Ergebnis anzeigen
+		</button>
+		{#if klassenAbschluss?.naechste}
+			<!-- svelte-ignore a11y_autofocus -->
+			<button class="btn btn-primary" onclick={naechsteKlasse} autofocus>
+				Zur nächsten Klasse <ArrowRight size={16} />
+			</button>
+		{:else}
+			<button class="btn btn-primary" onclick={() => goto(`/veranstaltung/${s.id}/abschluss`)}>Drucken & Export <ArrowRight size={16} /></button>
+		{/if}
+	{/snippet}
+</Dialog>

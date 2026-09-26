@@ -245,16 +245,25 @@ export class Repository {
 			if (!alt) throw new Error('Der Fahrer wurde nicht gefunden.');
 			const versionId = await this.aktuelleVersion(id);
 			if (!fahrerGeaendert(alt, werte) && versionId) return { id, versionId };
-			await this.db
-				.update(fahrer)
-				.set({ ...werte, geaendertAm: zeitpunkt })
-				.where(eq(fahrer.id, id));
+			try {
+				await this.db
+					.update(fahrer)
+					.set({ ...werte, geaendertAm: zeitpunkt })
+					.where(eq(fahrer.id, id));
+			} catch (e) {
+				eindeutigkeitsFehler(e, `Die Lizenz ${werte.lizenz} ist bereits an einen anderen Fahrer vergeben.`);
+			}
 			return { id, versionId: await this.versionAnlegen(id, werte, anlass ?? 'bearbeitet', zeitpunkt) };
 		}
-		const [neu] = await this.db
-			.insert(fahrer)
-			.values({ ...werte, geaendertAm: zeitpunkt })
-			.returning({ id: fahrer.id });
+		let neu: { id: number };
+		try {
+			[neu] = await this.db
+				.insert(fahrer)
+				.values({ ...werte, geaendertAm: zeitpunkt })
+				.returning({ id: fahrer.id });
+		} catch (e) {
+			eindeutigkeitsFehler(e, `Die Lizenz ${werte.lizenz} ist bereits an einen anderen Fahrer vergeben.`);
+		}
 		return { id: neu.id, versionId: await this.versionAnlegen(neu.id, werte, anlass ?? 'angelegt', zeitpunkt) };
 	}
 
@@ -272,21 +281,14 @@ export class Repository {
 		if (ids.length) await this.db.delete(fahrer).where(inArray(fahrer.id, ids));
 	}
 
-	/**
-	 * Gleicht die Fahrerdatenbank mit der ZP-Fahrerliste ab (neu / geändert / unverändert).
-	 * Zuordnung über die Lizenz; tragen mehrere Fahrer dieselbe Lizenz, wird der mit
-	 * gleichem Namen aktualisiert.
-	 */
+	/** Gleicht die Fahrerdatenbank über die (eindeutige) Lizenz mit der ZP-Fahrerliste ab. */
 	async fahrerImportieren(liste: FahrerDaten[]): Promise<{ neu: number; aktualisiert: number; unveraendert: number }> {
-		const nachLizenz = new Map<string, Fahrer[]>();
-		for (const f of await this.fahrerListe()) nachLizenz.set(f.lizenz, [...(nachLizenz.get(f.lizenz) ?? []), f]);
-		const name = (f: FahrerDaten) => `${f.nachname} ${f.vorname}`.trim().toLocaleLowerCase('de-DE');
+		const nachLizenz = new Map((await this.fahrerListe()).filter((f) => f.lizenz).map((f) => [f.lizenz, f]));
 		let aktualisiert = 0;
 		let unveraendert = 0;
 		const neue: FahrerDaten[] = [];
 		for (const f of liste) {
-			const kandidaten = nachLizenz.get(f.lizenz) ?? [];
-			const alt = kandidaten.find((k) => name(k) === name(f)) ?? kandidaten[0];
+			const alt = nachLizenz.get(f.lizenz);
 			if (!alt) neue.push(fahrerDaten(f));
 			else if (fahrerGeaendert(alt, fahrerDaten(f))) {
 				await this.fahrerSpeichern({ ...f, id: alt.id }, 'ZP-Import');

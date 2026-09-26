@@ -16,11 +16,11 @@ Komplette Neuentwicklung als Desktop-App (Tauri 2, Svelte 5, TypeScript, SQLite)
 
 Änderungen aus dem ersten Nutzertest:
 
-* Lizenznummern dürfen Buchstaben, Ziffern sowie `-`, `/` und `_` enthalten
+* Lizenznummern sind eindeutig und dürfen Buchstaben, Ziffern sowie `-`, `/` und `_` enthalten
 * Erfasste Läufe können korrigiert werden; eine Begründung ist Pflicht und wird im Änderungsprotokoll festgehalten
 * Läufe können als DNS (nicht gestartet) oder DSQ (disqualifiziert) gekennzeichnet werden, mit Pflichtkommentar
-* Nach dem Speichern springt die Erfassung zum nächsten Start (Zweierpaare: Training, Wertung 1 – danach alle Wertung 2)
-* Nennlisten (CSV/Excel) können je Klasse importiert werden; neue Fahrer werden automatisch angelegt, Abweichungen im Seitenvergleich zusammengeführt
-* Fahrerdaten werden versioniert, Nennungen sind mit der verwendeten Version verknüpft; gleiche Lizenzen für verschiedene Fahrer sind möglich
+* Nach dem Speichern springt die Erfassung zum nächsten Start, Klasse für Klasse (Zweierpaare: Training, Wertung 1 – danach alle Wertung 2 der Klasse); nach dem letzten Lauf einer Klasse folgt ein Zwischenschritt mit Ergebnis und Wechsel zur nächsten Klasse
+* Nennlisten (CSV/Excel) können je Klasse importiert werden; neue Fahrer werden automatisch angelegt. Gleiche Lizenz oder gleicher Name lösen einen Abgleich aus, bei dem jedes abweichende Feld entschieden werden muss
+* Fahrerdaten werden versioniert, Nennungen sind mit der verwendeten Version verknüpft
 
 Die Änderungen der Excel-Versionen bis v0.23 stehen in [legacy/CHANGELOG.md](legacy/CHANGELOG.md).

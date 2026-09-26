@@ -1,10 +1,11 @@
+import { sql } from 'drizzle-orm';
 import { integer, primaryKey, real, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 
 /**
  * Fahrerdatenbank – bleibt über alle Veranstaltungen hinweg erhalten.
  * Die Tabelle hält den aktuellen Stand; jede Änderung wird zusätzlich in
- * fahrer_version festgehalten. Lizenznummern sind nicht eindeutig: Zwei
- * verschiedene Fahrer können (z. B. durch Tippfehler) dieselbe Nummer tragen.
+ * fahrer_version festgehalten. Lizenznummern sind eindeutig – nur Fahrer
+ * ohne Lizenz (leerer Wert) dürfen mehrfach vorkommen.
  */
 export const fahrer = sqliteTable(
 	'fahrer',
@@ -22,7 +23,7 @@ export const fahrer = sqliteTable(
 		alteLizenz: text('alte_lizenz').notNull().default(''),
 		geaendertAm: text('geaendert_am').notNull()
 	},
-	(t) => [index('fahrer_lizenz').on(t.lizenz)]
+	(t) => [uniqueIndex('fahrer_lizenz_eindeutig').on(t.lizenz).where(sql`${t.lizenz} <> ''`)]
 );
 
 /** Historie der Fahrerdaten. Nennungen verweisen auf die Version, mit der gemeldet wurde. */

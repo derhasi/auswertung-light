@@ -5,7 +5,7 @@
 import { repo, type Fahrer, type FahrerRef, type StartDaten, type VeranstaltungsDaten, type VeranstaltungsStammdaten } from '$lib/db';
 import type { FahrerDaten } from '$lib/domain/fahrer-import';
 import { mannschaftsWertung } from '$lib/domain/mannschaft';
-import { zusammengefuehrt, type ImportPosten } from '$lib/domain/nennung-import';
+import { konfliktGeloest, zusammengefuehrt, type ImportPosten } from '$lib/domain/nennung-import';
 import { startReihenfolge } from '$lib/domain/reihenfolge';
 import type { Klasse, LaufEingabe, LaufNr, Starter } from '$lib/domain/typen';
 import { klassenWertung } from '$lib/domain/wertung';
@@ -165,6 +165,8 @@ export class VeranstaltungsStore {
 
 	/** Führt einen geplanten Nennungs-Import aus. */
 	async nennungenImportieren(posten: ImportPosten<Fahrer>[]): Promise<{ genannt: number; neueFahrer: number; aktualisiert: number; fehler: string[] }> {
+		const offen = posten.filter((p) => p.uebernehmen && !konfliktGeloest(p));
+		if (offen.length) throw new Error(`${offen.length} Abweichungen sind noch nicht vollständig entschieden.`);
 		const r = await repo();
 		const ergebnis = { genannt: 0, neueFahrer: 0, aktualisiert: 0, fehler: [] as string[] };
 		for (const p of posten) {
@@ -176,10 +178,10 @@ export class VeranstaltungsStore {
 					daten = p.zeile;
 					ref = await r.fahrerSpeichern(p.zeile, p.art === 'neu' ? 'Nennungs-Import' : 'Nennungs-Import (anderer Fahrer)');
 					ergebnis.neueFahrer++;
-				} else if (p.art === 'konflikt' && p.loesung === 'zusammenfuehren' && p.bestand) {
+				} else if (p.art === 'konflikt' && p.bestand) {
 					daten = zusammengefuehrt(p);
-					ref = await r.fahrerSpeichern({ ...daten, id: p.bestand.id }, 'Nennungs-Import (zusammengeführt)');
-					ergebnis.aktualisiert++;
+					ref = await r.fahrerSpeichern({ ...daten, id: p.bestand.id }, 'Nennungs-Import (abgeglichen)');
+					if (p.unterschiede.some((f) => p.auswahl[f] === 'import')) ergebnis.aktualisiert++;
 				} else if (p.bestand) {
 					daten = p.bestand;
 					ref = await r.fahrerSpeichern({ ...p.bestand, id: p.bestand.id });

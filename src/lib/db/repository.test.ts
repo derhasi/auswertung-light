@@ -32,8 +32,8 @@ describe('Repository', () => {
 
 	it('migriert idempotent', async () => {
 		const treiber = await sqlJsTreiber();
-		expect(await migrieren(treiber)).toBe(2);
-		expect(await migrieren(treiber)).toBe(2);
+		expect(await migrieren(treiber)).toBe(3);
+		expect(await migrieren(treiber)).toBe(3);
 	});
 
 	it('übernimmt vorhandene Daten beim Update auf Fahrerversionen', async () => {
@@ -46,7 +46,7 @@ describe('Repository', () => {
 		await treiber.ausfuehren(`INSERT INTO klasse (veranstaltung_id, name) VALUES (1, 'K1')`);
 		await treiber.ausfuehren(`INSERT INTO start (veranstaltung_id, klasse_id, startnummer, lizenz, nachname) VALUES (1, 1, 1, 'A-1', 'Alt')`);
 		await treiber.ausfuehren(`INSERT INTO lauf (start_id, nr, zeit, geaendert_am) VALUES (1, 1, 30.5, 'x')`);
-		expect(await migrieren(treiber)).toBe(2);
+		expect(await migrieren(treiber)).toBe(3);
 		const repo = new Repository(erstelleDb(treiber));
 		const [f] = await repo.fahrerListe();
 		const versionen = await repo.fahrerVersionen(f.id);
@@ -73,7 +73,7 @@ describe('Repository', () => {
 		]);
 	});
 
-	it('versioniert Fahrerdaten und erlaubt doppelte Lizenzen', async () => {
+	it('versioniert Fahrerdaten und hält Lizenzen eindeutig', async () => {
 		const a = await r.fahrerSpeichern(fahrerDaten('AB-1/2_x'));
 		const unveraendert = await r.fahrerSpeichern({ ...fahrerDaten('AB-1/2_x'), id: a.id });
 		expect(unveraendert).toEqual(a);
@@ -81,10 +81,29 @@ describe('Repository', () => {
 		expect(geaendert.id).toBe(a.id);
 		expect(geaendert.versionId).not.toBe(a.versionId);
 		expect((await r.fahrerVersionen(a.id)).map((v) => v.ort)).toEqual(['Neustadt', 'Musterstadt']);
-		// Anderer Fahrer mit derselben Lizenz
-		const b = await r.fahrerSpeichern(fahrerDaten('AB-1/2_x', { nachname: 'Anders' }));
-		expect(b.id).not.toBe(a.id);
-		expect((await r.fahrerListe()).filter((f) => f.lizenz === 'AB-1/2_x')).toHaveLength(2);
+		// Anderer Fahrer mit derselben Lizenz ist nicht erlaubt …
+		await expect(r.fahrerSpeichern(fahrerDaten('AB-1/2_x', { nachname: 'Anders' }))).rejects.toThrow('bereits an einen anderen Fahrer vergeben');
+		const b = await r.fahrerSpeichern(fahrerDaten('C-3', { nachname: 'Anders' }));
+		await expect(r.fahrerSpeichern({ ...fahrerDaten('AB-1/2_x'), id: b.id })).rejects.toThrow('vergeben');
+		// … Fahrer ohne Lizenz dürfen mehrfach vorkommen
+		await r.fahrerSpeichern(fahrerDaten('', { nachname: 'Gast1' }));
+		await r.fahrerSpeichern(fahrerDaten('', { nachname: 'Gast2' }));
+		expect((await r.fahrerListe()).filter((f) => f.lizenz === '')).toHaveLength(2);
+	});
+
+	it('macht bei der Migration doppelte Lizenzen eindeutig', async () => {
+		const treiber = await sqlJsTreiber();
+		for (const m of MIGRATIONEN.slice(0, 2)) for (const a of m.sql.split('--> statement-breakpoint')) await treiber.ausfuehren(a);
+		await treiber.ausfuehren('PRAGMA user_version = 2');
+		await treiber.ausfuehren(`INSERT INTO fahrer (lizenz, nachname, geaendert_am) VALUES ('X1', 'A', 'x'), ('X1', 'B', 'x'), ('', 'C', 'x'), ('', 'D', 'x')`);
+		expect(await migrieren(treiber)).toBe(3);
+		const liste = await new Repository(erstelleDb(treiber)).fahrerListe();
+		expect(liste.map((f) => [f.nachname, f.lizenz])).toEqual([
+			['A', 'X1'],
+			['B', 'X1-doppelt2'],
+			['C', ''],
+			['D', '']
+		]);
 	});
 
 	it('legt Veranstaltungen mit Standardklassen an und übernimmt Einstellungen', async () => {

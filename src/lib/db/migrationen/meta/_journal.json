@@ -15,6 +15,13 @@
       "when": 1790427317626,
       "tag": "0001_versionen_status",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790428792540,
+      "tag": "0002_lizenz_eindeutig",
+      "breakpoints": true
     }
   ]
 }

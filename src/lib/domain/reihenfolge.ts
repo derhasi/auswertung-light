@@ -1,11 +1,12 @@
 /**
- * Startreihenfolge am Veranstaltungstag:
- * Die Fahrer starten in Zweierpaaren – erst beide Training, dann beide Wertungslauf 1.
- * Sind alle Paare durch, fährt jeder Fahrer (in derselben Reihenfolge) Wertungslauf 2.
+ * Startreihenfolge am Veranstaltungstag – Klasse für Klasse:
+ * Innerhalb einer Klasse starten die Fahrer in Zweierpaaren, erst beide Training,
+ * dann beide Wertungslauf 1. Sind alle Paare der Klasse durch, fährt jeder Fahrer
+ * der Klasse (in derselben Reihenfolge) Wertungslauf 2. Danach folgt die nächste Klasse.
  *
- *   1 T, 2 T, 1 W1, 2 W1, 3 T, 4 T, 3 W1, 4 W1, …, 1 W2, 2 W2, 3 W2, …
+ *   Klasse 1: 1 T, 2 T, 1 W1, 2 W1, 3 T, 3 W1, 1 W2, 2 W2, 3 W2 · Klasse 2: …
  *
- * Die Fahrer sind nach Klasse (Reihenfolge der Klassen) und Startnummer sortiert.
+ * Die Klassen folgen ihrer eingestellten Reihenfolge, die Fahrer der Startnummer.
  */
 import { laufErfasst, type LaufNr, type Starter } from './typen';
 
@@ -31,14 +32,29 @@ export function startReihenfolge(
 ): StartPlatz[] {
 	const liste = sortierteStarter(starter, klassenPosition);
 	const reihenfolge: StartPlatz[] = [];
-	for (let i = 0; i < liste.length; i += 2) {
-		const paar = liste.slice(i, i + 2);
-		for (const lauf of [0, 1] as LaufNr[]) {
-			for (const s of paar) reihenfolge.push({ starter: s, lauf });
+	let i = 0;
+	while (i < liste.length) {
+		// Alle Fahrer derselben Klasse
+		const klasseId = liste[i].klasseId;
+		let ende = i;
+		while (ende < liste.length && liste[ende].klasseId === klasseId) ende++;
+		const klasse = liste.slice(i, ende);
+		for (let j = 0; j < klasse.length; j += 2) {
+			const paar = klasse.slice(j, j + 2);
+			for (const lauf of [0, 1] as LaufNr[]) {
+				for (const s of paar) reihenfolge.push({ starter: s, lauf });
+			}
 		}
+		for (const s of klasse) reihenfolge.push({ starter: s, lauf: 2 });
+		i = ende;
 	}
-	for (const s of liste) reihenfolge.push({ starter: s, lauf: 2 });
 	return reihenfolge;
+}
+
+/** Sind alle Läufe (Training, W1, W2) aller Fahrer der Klasse erfasst? */
+export function klasseKomplett(starter: readonly Starter[], klasseId: number): boolean {
+	const inKlasse = starter.filter((s) => s.klasseId === klasseId);
+	return inKlasse.length > 0 && inKlasse.every((s) => ([0, 1, 2] as LaufNr[]).every((nr) => laufErfasst(s.laeufe[nr])));
 }
 
 /**

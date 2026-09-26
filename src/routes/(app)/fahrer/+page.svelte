@@ -92,11 +92,10 @@
 			ui.melden('Die Lizenz darf nur Buchstaben, Ziffern sowie - / _ enthalten.', 'warnung');
 			return;
 		}
-		const gleicheLizenz = fahrer.filter((f) => lizenz && f.lizenz === lizenz && f.id !== daten.id);
-		if (gleicheLizenz.length) {
-			const namen = gleicheLizenz.map((f) => `${f.vorname} ${f.nachname}`).join(', ');
-			const ok = await ui.bestaetigen(`Die Lizenz ${lizenz} ist bereits vergeben (${namen}). Trotzdem als eigenen Fahrer speichern?`, { ja: 'Trotzdem speichern' });
-			if (!ok) return;
+		const vergeben = fahrer.find((f) => lizenz && f.lizenz === lizenz && f.id !== daten.id);
+		if (vergeben) {
+			ui.melden(`Die Lizenz ${lizenz} ist bereits an ${vergeben.vorname} ${vergeben.nachname} vergeben. Lizenzen müssen eindeutig sein.`, 'fehler');
+			return;
 		}
 		try {
 			await (await repo()).fahrerSpeichern({

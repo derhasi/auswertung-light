@@ -21,8 +21,8 @@
 		<ol class="mt-3 list-decimal space-y-2 pl-5 text-sm">
 			<li><strong>Fahrerdatenbank</strong>: ZP-Fahrerliste (CSV) importieren. Vorhandene Fahrer werden abgeglichen, nicht doppelt angelegt.</li>
 			<li><strong>Veranstaltung anlegen</strong>: Einstellungen, Klassen und Logos werden von der letzten Veranstaltung übernommen.</li>
-			<li><strong>Nennung</strong>: Fahrer suchen und mit Enter nennen – oder eine Nennliste (CSV/Excel) je Klasse importieren. Abweichungen zur Datenbank werden im Seitenvergleich geklärt.</li>
-			<li><strong>Erfassung</strong>: Fehler → Fehler → Zeit, jeweils mit Enter; danach springt die Maske zum nächsten Start (je zwei Fahrer Training und Wertung 1, danach alle Wertung 2). DNS/DSQ mit Kommentar. Zeiten der Zeitmessung per Klick oder Strg + T.</li>
+			<li><strong>Nennung</strong>: Fahrer suchen und mit Enter nennen – oder eine Nennliste (CSV/Excel) je Klasse importieren. Gleiche Lizenz oder gleicher Name wie in der Datenbank: abweichende Felder im Seitenvergleich einzeln entscheiden.</li>
+			<li><strong>Erfassung</strong>: Fehler → Fehler → Zeit, jeweils mit Enter; danach springt die Maske zum nächsten Start – Klasse für Klasse: je zwei Fahrer Training und Wertung 1, danach alle Fahrer der Klasse Wertung 2. Nach dem letzten Lauf einer Klasse: Ergebnis anzeigen oder zur nächsten Klasse. DNS/DSQ mit Kommentar. Zeiten der Zeitmessung per Klick oder Strg + T.</li>
 			<li><strong>Korrekturen</strong>: erfasste Läufe in der Erfassung oder über den Stift in der Ergebnisliste ändern – immer mit Begründung, alle Änderungen werden protokolliert.</li>
 			<li><strong>Ergebnisse & Mannschaft</strong>: werden laufend berechnet.</li>
 			<li><strong>Drucken & Export</strong>: Start- und Ergebnislisten, Mannschaftswertung, Urkunden, ZP-Datei.</li>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Printer } from '@lucide/svelte';
 	import ErgebnisListe from '$lib/components/ErgebnisListe.svelte';
 	import LaufBearbeiten from '$lib/components/LaufBearbeiten.svelte';
@@ -7,7 +8,9 @@
 	let { data } = $props();
 	const s = $derived(data.store);
 
-	let auswahl = $state<number | 'alle'>('alle');
+	// Klasse aus der Adresse übernehmen (z. B. aus dem Zwischenschritt der Erfassung)
+	const klasseParam = Number(page.url.searchParams.get('klasse'));
+	let auswahl = $state<number | 'alle'>(Number.isFinite(klasseParam) && klasseParam > 0 ? klasseParam : 'alle');
 	let adressen = $state(false);
 	let training = $state(true);
 	let bearbeiten = $state<Starter | null>(null);

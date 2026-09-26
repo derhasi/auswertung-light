@@ -1,8 +1,17 @@
 <script lang="ts">
-	import { FileUp, GitMerge, TriangleAlert, UserPlus, Users } from '@lucide/svelte';
+	import { CircleCheck, FileUp, GitMerge, TriangleAlert, UserPlus } from '@lucide/svelte';
 	import { repo, type Fahrer } from '$lib/db';
 	import { FELD_NAMEN, formatDatum, leseNennungsDatei, type NennungsZeile } from '$lib/domain/fahrer-import';
-	import { importPlanen, mitBestandVergleichen, startnummernVergeben, zusammengefuehrt, type ImportPosten, type KonfliktLoesung } from '$lib/domain/nennung-import';
+	import {
+		importPlanen,
+		konfliktGeloest,
+		mitBestandVergleichen,
+		offeneFelder,
+		startnummernVergeben,
+		zusammengefuehrt,
+		type ImportPosten
+	} from '$lib/domain/nennung-import';
+	import { VERGLEICHS_FELDER, type VergleichsFeld } from '$lib/domain/fahrer-import';
 	import { dateiOeffnen } from '$lib/plattform';
 	import type { VeranstaltungsStore } from '$lib/stores/veranstaltung.svelte';
 	import Dialog from '$lib/ui/Dialog.svelte';
@@ -43,16 +52,12 @@
 		konflikt: 'bg-warn-soft text-warn',
 		'bereits-gemeldet': 'bg-sunken text-muted'
 	} as const;
-	const loesungText: Record<KonfliktLoesung, string> = {
-		zusammenfuehren: 'Zusammenführen',
-		bestehend: 'Datenbank beibehalten',
-		'neuer-fahrer': 'Anderer Fahrer (neu anlegen)'
-	};
 
 	const zusammenfassung = $derived({
 		gesamt: posten.filter((p) => p.uebernehmen).length,
 		neu: posten.filter((p) => p.uebernehmen && (p.art === 'neu' || (p.art === 'konflikt' && p.loesung === 'neuer-fahrer'))).length,
-		konflikte: posten.filter((p) => p.art === 'konflikt').length
+		konflikte: posten.filter((p) => p.art === 'konflikt').length,
+		offen: posten.filter((p) => p.uebernehmen && !konfliktGeloest(p)).length
 	});
 
 	async function dateiWaehlen() {
@@ -76,7 +81,7 @@
 	function planen() {
 		const ziel = zielKlasse === 'datei' ? null : Number(zielKlasse);
 		posten = importPlanen(zeilen, datenbank, store.starter, store.klassen, ziel);
-		offenerKonflikt = null;
+		naechsterKonflikt();
 	}
 
 	function nummernNeu() {
@@ -92,6 +97,28 @@
 		nummernNeu();
 	}
 
+	/** Öffnet den nächsten noch nicht entschiedenen Konflikt. */
+	function naechsterKonflikt() {
+		const i = posten.findIndex((p) => p.uebernehmen && !konfliktGeloest(p));
+		offenerKonflikt = i >= 0 ? i : null;
+	}
+
+	function feldWaehlen(i: number, feld: VergleichsFeld, seite: 'bestand' | 'import') {
+		posten[i].auswahl[feld] = seite;
+		if (konfliktGeloest(posten[i])) setTimeout(naechsterKonflikt, 150);
+	}
+
+	function alleWaehlen(i: number, seite: 'bestand' | 'import') {
+		posten[i].loesung = 'zusammenfuehren';
+		for (const feld of posten[i].unterschiede) posten[i].auswahl[feld] = seite;
+		setTimeout(naechsterKonflikt, 150);
+	}
+
+	function alsNeuerFahrer(i: number) {
+		posten[i].loesung = 'neuer-fahrer';
+		setTimeout(naechsterKonflikt, 150);
+	}
+
 	function kandidatWaehlen(i: number, id: number) {
 		const p = posten[i];
 		posten[i] = mitBestandVergleichen(p, p.kandidaten.find((k) => k.id === id) ?? null);
@@ -100,6 +127,10 @@
 	async function importieren() {
 		const unklar = posten.filter((p) => p.uebernehmen && p.klasseId === null);
 		if (unklar.length) return ui.melden(`${unklar.length} Zeilen ohne Klasse – bitte zuordnen oder abwählen.`, 'warnung');
+		if (zusammenfassung.offen) {
+			naechsterKonflikt();
+			return ui.melden(`${zusammenfassung.offen} Abweichungen sind noch nicht entschieden.`, 'warnung');
+		}
 		laeuft = true;
 		try {
 			const r = await store.nennungenImportieren($state.snapshot(posten) as ImportPosten<Fahrer>[]);
@@ -193,66 +224,90 @@
 								<td class="px-3 py-2">
 									<span class="badge {artStil[p.art]}">{artText[p.art]}</span>
 									{#if p.art === 'konflikt'}
-										<button class="btn btn-sm ml-1" onclick={() => (offenerKonflikt = offenerKonflikt === i ? null : i)}>
-											<GitMerge size={13} /> {loesungText[p.loesung]}
+										{@const offenAnzahl = offeneFelder(p).length}
+										<button class="btn btn-sm ml-1 {konfliktGeloest(p) ? '' : 'border-warn text-warn'}" onclick={() => (offenerKonflikt = offenerKonflikt === i ? null : i)}>
+											{#if !konfliktGeloest(p)}
+												<GitMerge size={13} /> {offenAnzahl} {offenAnzahl === 1 ? 'Feld' : 'Felder'} entscheiden
+											{:else if p.loesung === 'neuer-fahrer'}
+												<UserPlus size={13} /> Anderer Fahrer
+											{:else}
+												<CircleCheck size={13} /> Abgeglichen
+											{/if}
 										</button>
+										<div class="mt-1 text-xs text-muted">{p.treffer === 'lizenz' ? 'Gleiche Lizenz' : 'Gleicher Name'} wie in der Datenbank</div>
 									{/if}
 									{#if p.hinweis && p.art !== 'bereits-gemeldet'}<div class="mt-1 text-xs text-warn">{p.hinweis}</div>{/if}
 								</td>
 							</tr>
 							{#if offenerKonflikt === i && p.bestand}
 								{@const ergebnis = zusammengefuehrt(p)}
+								{@const neuerFahrer = p.loesung === 'neuer-fahrer'}
 								<tr class="border-t border-line bg-sunken/40">
 									<td colspan="6" class="px-4 py-4">
 										<div class="flex flex-wrap items-center gap-2">
-											<p class="mr-auto text-sm font-semibold">Abgleich mit der Fahrerdatenbank</p>
+											<p class="mr-auto text-sm font-semibold">
+												{p.treffer === 'lizenz' ? `Lizenz ${p.zeile.lizenz} ist bereits vergeben` : `${p.zeile.vorname} ${p.zeile.nachname} ist bereits in der Datenbank`}
+												– abweichende Felder entscheiden
+											</p>
 											{#if p.kandidaten.length > 1}
 												<label class="flex items-center gap-2 text-xs text-muted">
 													Vergleichen mit
 													<select class="input w-auto py-1" value={String(p.bestand.id)} onchange={(e) => kandidatWaehlen(i, Number(e.currentTarget.value))}>
-														{#each p.kandidaten as k (k.id)}<option value={String(k.id)}>{k.nachname}, {k.vorname} ({k.verein})</option>{/each}
+														{#each p.kandidaten as k (k.id)}<option value={String(k.id)}>{k.nachname}, {k.vorname} ({k.lizenz || 'ohne Lizenz'}, {k.verein})</option>{/each}
 													</select>
 												</label>
 											{/if}
 										</div>
-										<div class="mt-3 grid grid-cols-[140px_1fr_1fr] overflow-hidden rounded-lg border border-line bg-surface text-sm">
+										<div class="mt-3 grid grid-cols-[140px_1fr_1fr] overflow-hidden rounded-lg border border-line bg-surface text-sm {neuerFahrer ? 'opacity-50' : ''}">
 											<div class="bg-sunken px-3 py-2 text-xs font-semibold text-muted uppercase">Feld</div>
 											<div class="bg-sunken px-3 py-2 text-xs font-semibold text-muted uppercase">Datenbank</div>
 											<div class="bg-sunken px-3 py-2 text-xs font-semibold text-muted uppercase">Nennliste</div>
-											{#each ['lizenz', 'nachname', 'vorname', 'verein', 'plz', 'ort', 'geburtsdatum'] as const as feld (feld)}
-												{@const abweichend = (p.unterschiede as string[]).includes(feld)}
-												<div class="border-t border-line px-3 py-1.5 text-muted">{FELD_NAMEN[feld]}</div>
-												{#if abweichend && p.loesung === 'zusammenfuehren'}
+											{#each VERGLEICHS_FELDER as feld (feld)}
+												{@const abweichend = p.unterschiede.includes(feld)}
+												{@const offen = abweichend && !neuerFahrer && p.auswahl[feld] === undefined}
+												<div class="border-t border-line px-3 py-1.5 {offen ? 'font-semibold text-warn' : 'text-muted'}">{FELD_NAMEN[feld]}</div>
+												{#if abweichend && !neuerFahrer}
 													{#each ['bestand', 'import'] as const as seite (seite)}
-														<label class="flex cursor-pointer items-center gap-2 border-t border-line px-3 py-1.5 {p.auswahl[feld as keyof typeof p.auswahl] === seite ? 'bg-accent-soft font-semibold' : ''}">
-															<input type="radio" name="feld-{i}-{feld}" value={seite} bind:group={p.auswahl[feld as keyof typeof p.auswahl]} class="accent-[var(--color-accent)]" />
+														<label
+															class="flex cursor-pointer items-center gap-2 border-t border-line px-3 py-1.5 {p.auswahl[feld] === seite
+																? 'bg-accent-soft font-semibold'
+																: offen
+																	? 'bg-warn-soft/60'
+																	: ''}"
+														>
+															<input
+																type="radio"
+																name="feld-{i}-{feld}"
+																checked={p.auswahl[feld] === seite}
+																onchange={() => feldWaehlen(i, feld, seite)}
+																class="accent-[var(--color-accent)]"
+															/>
 															{anzeige(seite === 'bestand' ? p.bestand[feld] : p.zeile[feld], feld)}
 														</label>
 													{/each}
 												{:else}
-													<div class="border-t border-line px-3 py-1.5 {abweichend ? 'bg-warn-soft/50' : ''}">{anzeige(p.bestand[feld], feld)}</div>
-													<div class="border-t border-line px-3 py-1.5 {abweichend ? 'bg-warn-soft/50' : ''}">{anzeige(p.zeile[feld], feld)}</div>
+													<div class="border-t border-line px-3 py-1.5">{anzeige(p.bestand[feld], feld)}</div>
+													<div class="border-t border-line px-3 py-1.5 {abweichend ? 'font-semibold' : ''}">{anzeige(p.zeile[feld], feld)}</div>
 												{/if}
 											{/each}
 										</div>
-										<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Lösung">
-											<button class="chip" aria-pressed={p.loesung === 'zusammenfuehren'} onclick={() => (p.loesung = 'zusammenfuehren')}>
-												<GitMerge size={14} /> Zusammenführen (gewählte Werte)
-											</button>
-											<button class="chip" aria-pressed={p.loesung === 'bestehend'} onclick={() => (p.loesung = 'bestehend')}>
-												<Users size={14} /> Datenbank beibehalten
-											</button>
-											<button class="chip" aria-pressed={p.loesung === 'neuer-fahrer'} onclick={() => (p.loesung = 'neuer-fahrer')}>
-												<UserPlus size={14} /> Anderer Fahrer – neu anlegen
-											</button>
+										<div class="mt-3 flex flex-wrap gap-2">
+											<button class="btn btn-sm" onclick={() => alleWaehlen(i, 'bestand')}>Alle Werte aus der Datenbank</button>
+											<button class="btn btn-sm" onclick={() => alleWaehlen(i, 'import')}>Alle Werte aus der Nennliste</button>
+											{#if p.treffer === 'name'}
+												<button class="chip ml-auto" aria-pressed={neuerFahrer} onclick={() => (neuerFahrer ? (p.loesung = 'zusammenfuehren') : alsNeuerFahrer(i))}>
+													<UserPlus size={14} /> Anderer Fahrer – neu anlegen
+												</button>
+											{/if}
 										</div>
 										<p class="mt-2 text-xs text-muted">
-											{#if p.loesung === 'zusammenfuehren'}
-												Der Datensatz wird aktualisiert zu: {ergebnis.nachname}, {ergebnis.vorname} · {ergebnis.verein} · {ergebnis.plz} {ergebnis.ort}. Der bisherige Stand bleibt als Version erhalten; frühere Veranstaltungen behalten ihre Version.
-											{:else if p.loesung === 'bestehend'}
-												Der Fahrer wird mit den Daten aus der Datenbank gemeldet, die Nennliste wird ignoriert.
+											{#if neuerFahrer}
+												Es wird ein eigener Fahrer mit den Daten der Nennliste angelegt{p.zeile.lizenz ? ` (Lizenz ${p.zeile.lizenz})` : ' (ohne Lizenz)'}.
+											{:else if konfliktGeloest(p)}
+												Ergebnis: {ergebnis.nachname}, {ergebnis.vorname} · Lizenz {ergebnis.lizenz || '–'} · {ergebnis.verein} · {ergebnis.plz} {ergebnis.ort}. Der bisherige Stand bleibt als Version erhalten; frühere Veranstaltungen behalten ihre Version.
 											{:else}
-												Es wird ein zusätzlicher Fahrer mit den Daten der Nennliste angelegt (gleiche Lizenz, eigener Datensatz).
+												Noch offen: {offeneFelder(p).map((f) => FELD_NAMEN[f]).join(', ')}.
+												{#if p.treffer === 'lizenz'}Da Lizenzen eindeutig sind, kann dieser Fahrer nur abgeglichen werden.{/if}
 											{/if}
 										</p>
 									</td>
@@ -262,10 +317,10 @@
 					</tbody>
 				</table>
 			</div>
-			{#if zusammenfassung.konflikte}
+			{#if zusammenfassung.offen}
 				<p class="flex items-center gap-2 text-sm text-warn">
 					<TriangleAlert size={16} />
-					{zusammenfassung.konflikte} Fahrer weichen von der Datenbank ab. Standard ist „Zusammenführen“ mit den Werten der Nennliste – über die Schaltfläche in der Zeile prüfen und anpassen.
+					{zusammenfassung.offen} von {zusammenfassung.konflikte} Abweichungen sind noch nicht entschieden. Jedes abweichende Feld muss auf Datenbank- oder Nennlisten-Wert festgelegt werden.
 				</p>
 			{/if}
 		{/if}
@@ -275,7 +330,7 @@
 			<span class="mr-auto self-center text-sm text-muted">{zusammenfassung.gesamt} Fahrer werden gemeldet, davon {zusammenfassung.neu} neu in der Datenbank</span>
 		{/if}
 		<button class="btn" onclick={onschliessen}>Abbrechen</button>
-		<button class="btn btn-primary" onclick={importieren} disabled={laeuft || zusammenfassung.gesamt === 0}>
+		<button class="btn btn-primary" onclick={importieren} disabled={laeuft || zusammenfassung.gesamt === 0 || zusammenfassung.offen > 0}>
 			<UserPlus size={16} /> Importieren
 		</button>
 	{/snippet}
