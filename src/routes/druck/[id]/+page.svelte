@@ -69,7 +69,7 @@
 		<MannschaftsListe zeilen={s.mannschaft} anzahl={s.v.mannschaftAnzahl} druck />
 	{:else if dok === 'urkunden'}
 		{#each urkunden as { klasse, z }, i (z.starter.id)}
-			<section class="urkunde flex min-h-[260mm] flex-col items-center text-center {i > 0 ? 'break-before-page' : ''}">
+			<section class="urkunde flex min-h-[260mm] break-inside-avoid flex-col items-center text-center {i > 0 ? 'break-before-page' : ''}">
 				<div class="flex w-full items-start justify-between">
 					<div class="h-28 w-40">{#if s.v.logoLinks}<img src={s.v.logoLinks} alt="" class="max-h-28 max-w-40 object-contain" />{/if}</div>
 					<div class="h-28 w-40 text-right">{#if s.v.logoRechts}<img src={s.v.logoRechts} alt="" class="ml-auto max-h-28 max-w-40 object-contain" />{/if}</div>
@@ -144,8 +144,13 @@
 		:global(body) {
 			background: white;
 		}
+		/* Genau eine Urkunde je Seite: Höhe der bedruckbaren Fläche (100vh entspricht beim Drucken der Seite abzüglich
+		   der Ränder, auch wenn der Druckdialog größere Ränder oder Kopf-/Fußzeilen setzt). Die Obergrenze liegt unter
+		   A4 minus 2 × 12 mm, falls ein Browser vh auf das Fenster bezieht. */
 		.urkunde {
-			min-height: 270mm;
+			height: min(100vh, 265mm);
+			min-height: 0;
+			overflow: hidden;
 		}
 	}
 </style>

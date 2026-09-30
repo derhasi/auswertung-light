@@ -23,6 +23,7 @@ Komplette Neuentwicklung als Desktop-App (Tauri 2, Svelte 5, TypeScript, SQLite)
 * Nennlisten (CSV/Excel) können je Klasse importiert werden; neue Fahrer werden automatisch angelegt. Gleiche Lizenz oder gleicher Name lösen einen Abgleich aus, bei dem jedes abweichende Feld entschieden werden muss (leere Felder werden ignoriert); eine versehentlich gleiche Lizenz kann im Abgleich korrigiert werden
 * Fahrerdaten werden versioniert, Nennungen sind mit der verwendeten Version verknüpft
 * Neues Design „Startampel“: dunkler Kopfbalken mit den Reitern der Veranstaltung, schmale Versal-Überschriften (Barlow Condensed, in die App eingebunden, also auch offline), große Ziffern in der Erfassung, Fortschritt je Klasse, Podest in den Ergebnissen und Vereinsrangliste in der Mannschaftswertung; neue Veranstaltungen werden direkt auf der Startseite angelegt
+* Urkunden: Jede Urkunde wird auf genau eine Seite gedruckt, auch wenn der Druckdialog größere Ränder oder Kopf- und Fußzeilen setzt (vorher konnte jede Urkunde eine zweite Seite erzeugen)
 * „Hilfe & Info“ zeigt neben der Version den Commit und den Erstellungszeitpunkt des Builds, damit auch Testversionen eindeutig zugeordnet werden können
 
 Die Änderungen der Excel-Versionen bis v0.23 stehen in [legacy/CHANGELOG.md](legacy/CHANGELOG.md).
