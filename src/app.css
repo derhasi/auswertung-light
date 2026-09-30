@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+
+/*
+ * Farbtokens – hell und dunkel. Die Utilities (bg-surface, text-muted …)
+ * verweisen auf CSS-Variablen, die im Dunkelmodus überschrieben werden.
+ */
+@theme {
+	--font-sans: 'Barlow', 'Segoe UI', system-ui, -apple-system, sans-serif;
+	--font-display: 'Barlow Condensed', 'Barlow', 'Arial Narrow', sans-serif;
+	--font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+
+	--color-page: #eceef1;
+	--color-surface: #ffffff;
+	--color-sunken: #eceef1;
+	--color-line: #d6dae0;
+	--color-fg: #14161a;
+	--color-muted: #555c66;
+	--color-accent: #c2410c;
+	--color-accent-strong: #9a3412;
+	--color-accent-soft: #fff1e7;
+	--color-on-accent: #ffffff;
+	--color-ok: #15803d;
+	--color-ok-soft: #e3f3e8;
+	--color-warn: #b45309;
+	--color-warn-soft: #fdf3e1;
+	--color-danger: #b91c1c;
+	--color-danger-soft: #fdeaea;
+	--color-info: #1d4ed8;
+	--color-info-soft: #e8efff;
+	--color-nav: #14161a;
+	--color-nav-fg: #b4bac3;
+	--color-ink: #14161a;
+	--color-on-ink: #ffffff;
+	--color-ink-muted: #b4bac3;
+	--color-ink-line: #3b4048;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-page: #0f1114;
+		--color-surface: #181b20;
+		--color-sunken: #22262d;
+		--color-line: #2e343d;
+		--color-fg: #eceef1;
+		--color-muted: #9aa2ad;
+		--color-accent: #f97316;
+		--color-accent-strong: #fdba74;
+		--color-accent-soft: #3a2012;
+		--color-on-accent: #1a0c04;
+		--color-ok: #4ade80;
+		--color-ok-soft: #13301f;
+		--color-warn: #fbbf24;
+		--color-warn-soft: #362a10;
+		--color-danger: #f87171;
+		--color-danger-soft: #3b1717;
+		--color-info: #93b4ff;
+		--color-info-soft: #172444;
+		--color-nav: #08090b;
+		--color-nav-fg: #9aa2ad;
+		--color-ink: #08090b;
+		--color-on-ink: #ffffff;
+		--color-ink-muted: #9aa2ad;
+		--color-ink-line: #2e343d;
+	}
+}
+
+@media print {
+	:root {
+		--color-page: #ffffff;
+		--color-surface: #ffffff;
+		--color-sunken: #f1f3f5;
+		--color-line: #c9ced6;
+		--color-fg: #000000;
+		--color-muted: #444c56;
+	}
+}
+
+@layer base {
+	html,
+	body {
+		background: var(--color-page);
+		color: var(--color-fg);
+		font-family: var(--font-sans);
+		-webkit-font-smoothing: antialiased;
+	}
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+	input[type='number']::-webkit-inner-spin-button {
+		opacity: 0.4;
+	}
+	/* Große Zifferneingaben (Startnummer, Fehler) ohne Pfeile */
+	input[type='number'].display {
+		appearance: textfield;
+	}
+	input[type='number'].display::-webkit-inner-spin-button,
+	input[type='number'].display::-webkit-outer-spin-button {
+		appearance: none;
+		margin: 0;
+	}
+}
+
+@layer components {
+	.btn {
+		@apply inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-4 py-2 text-[15px] font-semibold text-fg transition-colors select-none;
+		@apply hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-50;
+	}
+	.btn-primary {
+		@apply border-transparent bg-accent text-on-accent hover:bg-accent-strong;
+	}
+	.btn-danger {
+		@apply border-transparent bg-danger text-white hover:opacity-90;
+	}
+	.btn-ghost {
+		@apply border-transparent bg-transparent hover:bg-sunken;
+	}
+	.btn-sm {
+		@apply min-h-0 rounded-lg px-2.5 py-1.5 text-sm;
+	}
+	.btn-lg {
+		@apply min-h-13 px-6 font-display text-[22px] font-extrabold tracking-wide uppercase;
+	}
+	.btn-ink {
+		@apply border-transparent bg-ink text-on-ink hover:opacity-90;
+	}
+	.btn-icon {
+		@apply p-2;
+	}
+	.input {
+		@apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-base text-fg placeholder:text-muted/70;
+		@apply focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25;
+	}
+	.label {
+		@apply mb-1.5 block text-[13px] font-bold tracking-wide text-muted uppercase;
+	}
+	.card {
+		@apply rounded-[14px] border border-line bg-surface;
+	}
+	.badge {
+		@apply inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold tracking-wide whitespace-nowrap uppercase;
+	}
+	.tabular {
+		font-variant-numeric: tabular-nums;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1.5 rounded-lg border border-transparent bg-sunken px-3.5 py-2 text-[15px] font-bold text-muted transition-colors hover:text-fg;
+	}
+	.chip[aria-pressed='true'],
+	.chip[aria-current='page'] {
+		@apply bg-accent text-on-accent hover:text-on-accent;
+	}
+	/* Überschriften im Stil „Startampel“: schmal, fett, Versalien */
+	.display {
+		@apply font-display font-extrabold tracking-[0.01em] uppercase;
+	}
+	.section-title {
+		@apply font-display text-[22px] leading-tight font-extrabold uppercase;
+	}
+	.eyebrow {
+		@apply text-[13px] font-bold tracking-[0.12em] uppercase;
+	}
+	.card-ink {
+		@apply rounded-[14px] bg-ink text-on-ink;
+	}
+}

@@ -1,0 +1,193 @@
+name: Build
+
+# Baut die Installationspakete für Windows, macOS und Linux.
+# - Push auf main oder v2 (Testphase): Pakete als Artefakte am Workflow-Lauf
+# - Tag wie v2.0.0 gepusht: zusätzlich Release-Entwurf mit den Paketen
+# - Manueller Start mit „Release-Tag": Release-Entwurf für den gewählten Commit;
+#   GitHub legt den Tag an, sobald der Entwurf veröffentlicht wird
+on:
+  push:
+    branches: [main, v2]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release-Tag (z. B. v2.0.0); leer = nur bauen'
+        required: false
+        default: ''
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag || '' }}
+
+jobs:
+  # Legt den Release-Entwurf einmal an, damit die parallelen Builds nicht
+  # jeweils ein eigenes Release erzeugen.
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      id: ${{ steps.entwurf.outputs.id }}
+    steps:
+      - id: entwurf
+        if: env.RELEASE_TAG != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Ungültiger Release-Tag „$RELEASE_TAG“ (erwartet z. B. v2.0.0)"
+            exit 1
+          fi
+          # Vorhandene Entwürfe für diesen Tag suchen – über Tag oder Namen, weil GitHub den Tag
+          # eines Entwurfs ohne existierenden Tag zeitweise als „untagged-…“ ausgibt.
+          mapfile -t entwuerfe < <(gh api "repos/$GH_REPO/releases?per_page=100" --jq \
+            "[.[] | select(.draft and (.tag_name == \"$RELEASE_TAG\" or .name == \"Auswertung Light $RELEASE_TAG\"))]
+             | sort_by(.created_at) | reverse | .[].id")
+          id="${entwuerfe[0]:-}"
+          # Ältere doppelte Entwürfe entfernen
+          for alt in "${entwuerfe[@]:1}"; do
+            echo "Entferne doppelten Entwurf $alt"
+            gh api -X DELETE "repos/$GH_REPO/releases/$alt"
+          done
+          if [ -n "$id" ]; then
+            # Entwurf auf den aktuellen Commit und den gewünschten Tag stellen
+            gh api -X PATCH "repos/$GH_REPO/releases/$id" \
+              -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" --jq .id > /dev/null
+          else
+            id=$(gh api -X POST "repos/$GH_REPO/releases" \
+              -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" \
+              -f name="Auswertung Light $RELEASE_TAG" \
+              -f body="Die Installationspakete werden gerade gebaut …" \
+              -F draft=true --jq .id)
+          fi
+          if [ -z "$id" ]; then
+            echo "::error::Release-Entwurf konnte nicht angelegt werden"
+            exit 1
+          fi
+          echo "Release-ID: $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            name: windows
+            args: ''
+          - platform: macos-latest
+            name: macos
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            name: linux
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Systempakete für Tauri (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          # pnpm wird erst danach über Corepack aktiviert; der automatische pnpm-Cache würde sonst fehlschlagen.
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Ohne releaseId wird nur gebaut, kein Release befüllt.
+          releaseId: ${{ needs.release.outputs.id }}
+          args: ${{ matrix.args }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: auswertung-light-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/**/release/bundle/msi/*.msi
+            src-tauri/target/**/release/bundle/nsis/*.exe
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/deb/*.deb
+            src-tauri/target/**/release/bundle/rpm/*.rpm
+            src-tauri/target/**/release/bundle/appimage/*.AppImage
+
+  # Schreibt den Release-Text mit Download-Links je Betriebssystem – aus den
+  # tatsächlich angehängten Dateien, damit Namen und Links immer stimmen.
+  beschreibung:
+    needs: [release, build]
+    if: ${{ !cancelled() && needs.release.outputs.id != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_ID: ${{ needs.release.outputs.id }}
+    steps:
+      - name: Release-Text mit Download-Links schreiben
+        run: |
+          mapfile -t dateien < <(gh api "repos/$GH_REPO/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].name' | sort)
+
+          # Links auf den Tag, damit sie nach dem Veröffentlichen gültig sind
+          link() {
+            local url
+            url=$(jq -rn --arg s "$1" '$s|@uri')
+            printf '[%s](https://github.com/%s/releases/download/%s/%s)' "$1" "$GH_REPO" "$RELEASE_TAG" "$url"
+          }
+          abschnitt() { # Überschrift, dann Paare aus Endung und Beschreibung
+            local titel="$1"; shift
+            local zeilen=""
+            while [ $# -gt 0 ]; do
+              local endung="$1" text="$2"; shift 2
+              for d in "${dateien[@]}"; do
+                [[ "$d" == *"$endung" ]] && zeilen+="- $(link "$d") – $text"$'\n'
+              done
+            done
+            if [ -n "$zeilen" ]; then printf '### %s\n\n%s\n' "$titel" "$zeilen"; fi
+          }
+
+          anleitung="https://github.com/$GH_REPO/blob/$GITHUB_SHA/README.md#unsignierte-pakete-trotzdem-starten"
+          {
+            echo "## Download"
+            echo
+            echo "Bitte die passende Datei für das eigene Betriebssystem herunterladen:"
+            echo
+            abschnitt "Windows (10 und 11, 64 Bit)" \
+              "-setup.exe" "Installationsprogramm (empfohlen)" \
+              ".msi" "MSI-Paket, z. B. für die Verteilung auf mehrere Rechner"
+            abschnitt "macOS (Intel und Apple Silicon)" \
+              ".dmg" "Disk-Image: öffnen und die App in „Programme“ ziehen"
+            abschnitt "Linux (64 Bit)" \
+              ".deb" "Debian, Ubuntu, Linux Mint" \
+              ".rpm" "Fedora, openSUSE" \
+              ".AppImage" "alle Distributionen, ohne Installation (vorher ausführbar machen)"
+            echo "## Hinweis: nicht signierte Pakete"
+            echo
+            echo "Die Pakete sind nicht signiert. Windows (SmartScreen) und macOS (Gatekeeper) warnen deshalb beim ersten Start."
+            echo "Wie die App trotzdem gestartet wird, steht in der [Anleitung im README]($anleitung)."
+            echo
+            echo "Änderungen: siehe [CHANGELOG](https://github.com/$GH_REPO/blob/$GITHUB_SHA/CHANGELOG.md)."
+          } > text.md
+          cat text.md
+
+          if [ "${#dateien[@]}" -eq 0 ]; then
+            echo "::error::Am Release hängen keine Dateien"
+            exit 1
+          fi
+          jq -n --rawfile body text.md '{body: $body}' \
+            | gh api -X PATCH "repos/$GH_REPO/releases/$RELEASE_ID" --input - --jq .html_url

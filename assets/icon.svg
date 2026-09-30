@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="url(#bg)"/>
+  <!-- Zielflaggen-Karos -->
+  <g fill="#f8fafc" opacity="0.9">
+    <rect x="600" y="170" width="70" height="70"/><rect x="740" y="170" width="70" height="70"/>
+    <rect x="670" y="240" width="70" height="70"/><rect x="810" y="240" width="70" height="70"/>
+    <rect x="600" y="310" width="70" height="70"/><rect x="740" y="310" width="70" height="70"/>
+  </g>
+  <rect x="590" y="160" width="300" height="230" fill="none" stroke="#f8fafc" stroke-width="12" opacity="0.9"/>
+  <!-- Pylone -->
+  <path d="M430 180 L560 180 L700 800 L290 800 Z" fill="#f97316"/>
+  <path d="M398 330 L592 330 L622 460 L368 460 Z" fill="#f8fafc"/>
+  <path d="M338 590 L652 590 L680 710 L312 710 Z" fill="#f8fafc"/>
+  <rect x="200" y="790" width="590" height="70" rx="24" fill="#ea580c"/>
+</svg>
