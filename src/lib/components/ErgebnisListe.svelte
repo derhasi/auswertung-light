@@ -28,11 +28,12 @@
 		return teile.length ? `${formatZeit(l.zeit)} + ${teile.join(' ')}` : '';
 	}
 
-	const zelle = $derived(druck ? 'px-1.5 py-1' : 'px-3 py-2');
+	const zelle = $derived(druck ? 'px-1.5 py-1' : 'px-3 py-2.5');
+	const gross = $derived(druck ? '' : 'display text-2xl leading-none');
 </script>
 
-<table class="w-full {druck ? 'text-[10.5pt]' : 'text-sm'}">
-	<thead class="text-left text-xs tracking-wide text-muted uppercase {druck ? 'border-b-2 border-fg' : 'bg-sunken'}">
+<table class="w-full {druck ? 'text-[10.5pt]' : 'text-[15px]'}">
+	<thead class="border-b-2 border-fg text-left tracking-wide text-muted uppercase {druck ? 'text-xs' : 'text-[13px]'}">
 		<tr>
 			<th class="{zelle} w-12 text-right font-semibold">Pl.</th>
 			<th class="{zelle} w-12 text-right font-semibold">Nr.</th>
@@ -47,14 +48,14 @@
 	<tbody>
 		{#each zeilen as z (z.starter.id)}
 			<tr class="border-t border-line align-top {druck ? 'break-inside-avoid' : ''} {z.status !== 'gewertet' ? 'text-muted' : ''}">
-				<td class="{zelle} text-right font-bold tabular">
+				<td class="{zelle} text-right font-bold tabular {z.platz ? gross : ''}">
 					{#if z.platz}{z.platz}.{:else}{STATUS_KURZ[z.status]}{/if}
 				</td>
 				<td class="{zelle} text-right tabular">{z.starter.startnummer}</td>
 				<td class={zelle}>
 					<span class="font-semibold text-fg">{z.starter.nachname}, {z.starter.vorname}</span>
-					{#if z.rookie}<span class="badge ml-1 {druck ? 'border border-current px-1 py-0' : 'bg-info-soft text-info'}">Rookie</span>{/if}
-					<div class="text-xs text-muted">
+					{#if z.rookie}<span class="badge ml-1 {druck ? 'border border-current px-1 py-0' : 'bg-accent-soft text-accent-strong'}">Rookie</span>{/if}
+					<div class="{druck ? 'text-xs' : 'text-[13px]'} text-muted">
 						{z.starter.verein}{#if adressen && (z.starter.plz || z.starter.ort)} · {z.starter.plz} {z.starter.ort}{/if}
 					</div>
 				</td>
@@ -65,7 +66,7 @@
 						{#if strafen(z.starter.laeufe[nr])}<div class="text-[10px] text-muted">{strafen(z.starter.laeufe[nr])}</div>{/if}
 					</td>
 				{/each}
-				<td class="{zelle} text-right font-bold tabular">{formatZeit(z.gesamt)}</td>
+				<td class="{zelle} text-right font-bold tabular {gross}">{formatZeit(z.gesamt)}</td>
 				<td class="{zelle} text-right tabular">{z.status === 'gewertet' ? formatPunkte(z.punkte) : ''}</td>
 				<td class="{zelle} text-right tabular">{z.status === 'gewertet' ? formatPunkte(z.sportabzeichen) : ''}</td>
 				{#if onbearbeiten && !druck}

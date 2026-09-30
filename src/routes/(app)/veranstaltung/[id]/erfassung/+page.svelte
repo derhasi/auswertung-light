@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { ArrowRight, Ban, Eraser, FileClock, Flag, ListOrdered, RefreshCw, Save, Trophy, TriangleAlert } from '@lucide/svelte';
+	import { ArrowRight, Ban, Eraser, FileClock, Flag, ListOrdered, RefreshCw, Trophy, TriangleAlert } from '@lucide/svelte';
 	import {
 		anzeigeName,
 		LAEUFE,
@@ -299,160 +299,182 @@
 		if ((l.status ?? 'ok') !== 'ok') return (l.status ?? '').toUpperCase();
 		return l.zeit != null ? formatZeit(laufErgebnis(l, s.v)) : '–';
 	}
+
+	/** Fortschrittsleiste je Klasse (alle drei Läufe). */
+	const strecke = $derived.by(() => {
+		const aktiv = starter?.klasseId;
+		return s.klassenWertungen
+			.filter((k) => k.zeilen.length)
+			.map(({ klasse, zeilen }) => {
+				const gesamt = zeilen.length * 3;
+				const erfasst = zeilen.reduce((a, z) => a + LAEUFE.filter((nr) => laufErfasst(z.starter.laeufe[nr])).length, 0);
+				return { klasse, gesamt, erfasst, fertig: erfasst === gesamt, aktiv: klasse.id === aktiv };
+			});
+	});
 </script>
 
 <svelte:window onkeydown={globaleTasten} />
 
-<div class="grid gap-6 px-8 py-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-	<div class="flex min-w-0 flex-col gap-6">
-		<div class="flex flex-wrap gap-2" role="group" aria-label="Lauf">
-			{#each LAEUFE as nr (nr)}
-				<button class="chip" aria-pressed={lauf === nr} onclick={() => laufWechseln(nr)}>
-					{LAUF_NAMEN[nr]}
-					<span class="text-xs opacity-70 tabular">{erfasstAnzahl(nr)}/{s.starter.length}</span>
-					<kbd class="rounded border border-current/30 px-1 text-[10px] opacity-60">Strg+{nr}</kbd>
-				</button>
-			{/each}
+<div class="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line bg-surface px-7 py-4">
+	<div class="flex gap-1.5" role="group" aria-label="Lauf">
+		{#each LAEUFE as nr (nr)}
+			<button class="chip" aria-pressed={lauf === nr} onclick={() => laufWechseln(nr)} title="Strg+{nr}">
+				{LAUF_NAMEN[nr]}
+				<span class="text-[13px] font-semibold opacity-80 tabular">{erfasstAnzahl(nr)}/{s.starter.length}</span>
+			</button>
+		{/each}
+	</div>
+	<div class="flex min-w-80 flex-1 gap-1.5" aria-label="Fortschritt je Klasse">
+		{#each strecke as k (k.klasse.id)}
+			<div class="flex min-w-0 flex-1 flex-col gap-1.5">
+				<div class="h-2 rounded bg-sunken">
+					<div class="h-2 rounded {k.fertig ? 'bg-fg' : k.aktiv ? 'bg-accent' : 'bg-muted/40'}" style:width="{(k.erfasst / k.gesamt) * 100}%"></div>
+				</div>
+				<div class="flex justify-between gap-1 text-[13px] font-semibold {k.aktiv ? 'text-accent' : 'text-muted'}">
+					<span class="truncate">{k.klasse.name}</span><span class="tabular">{k.fertig ? 'fertig' : `${k.erfasst}/${k.gesamt}`}</span>
+				</div>
+			</div>
+		{/each}
+	</div>
+</div>
+
+<div class="grid gap-6 px-7 py-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+	<form class="flex min-w-0 flex-col gap-4" onsubmit={(e) => (e.preventDefault(), speichern())}>
+		<div class="card flex overflow-hidden">
+			<div class="flex w-44 shrink-0 flex-col items-center justify-center gap-0.5 bg-ink py-3 text-on-ink">
+				<label class="eyebrow text-xs text-ink-muted" for="nummer">Startnr.</label>
+				<input
+					id="nummer"
+					bind:this={nummerFeld}
+					class="display w-36 bg-transparent text-center text-[96px] leading-none text-on-ink tabular outline-none placeholder:text-ink-line"
+					inputmode="numeric"
+					autocomplete="off"
+					placeholder="–"
+					bind:value={nummerText}
+					oninput={() => formularLaden(starter)}
+					onkeydown={nummerBestaetigen}
+				/>
+			</div>
+			<div class="flex min-w-0 flex-1 flex-col justify-center gap-2 px-7 py-5">
+				{#if starter}
+					{@const klasse = s.klasseVon(starter)}
+					<div class="flex flex-wrap gap-2">
+						<span class="badge bg-accent px-2.5 py-1 text-[13px] text-on-accent">{LAUF_NAMEN[lauf]}</span>
+						{#if klasse}<span class="badge bg-sunken px-2.5 py-1 text-[13px] text-fg">{klasse.name}</span>{/if}
+						{#if starter.rookieJahr !== null && starter.rookieJahr === s.jahr}<span class="badge bg-accent-soft px-2.5 py-1 text-[13px] text-accent-strong">Rookie</span>{/if}
+						{#if starter.ausserWertung}<span class="badge bg-warn-soft px-2.5 py-1 text-[13px] text-warn">außer Wertung</span>{/if}
+					</div>
+					<p class="display truncate text-[52px] leading-none">{starter.vorname} {starter.nachname}</p>
+					<p class="flex flex-wrap gap-x-3 text-base text-muted">
+						{#if starter.verein}<span>{starter.verein}</span>{/if}
+						{#each LAEUFE as nr (nr)}
+							{@const l = starter.laeufe[nr]}
+							<span class="tabular {(l?.status ?? 'ok') !== 'ok' ? 'text-danger' : laufErfasst(l) ? 'text-fg' : ''}">{LAUF_KURZ[nr]}: {laufText(l)}</span>
+						{/each}
+					</p>
+				{:else if nummerText.trim()}
+					<p class="flex items-center gap-2 text-lg font-semibold text-danger"><TriangleAlert size={20} /> Startnummer {nummerText} ist nicht gemeldet.</p>
+				{:else}
+					<p class="display text-[34px] leading-none text-muted">Startnummer eingeben</p>
+					<p class="text-base text-muted">Mit ↵ bestätigen – oder rechts einen Start aus der Reihenfolge wählen.</p>
+				{/if}
+			</div>
 		</div>
 
-		<form class="card p-6" onsubmit={(e) => (e.preventDefault(), speichern())}>
-			<div class="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
-				<div>
-					<label class="label" for="nummer">Startnummer</label>
+		<div class="flex flex-wrap gap-2" role="group" aria-label="Status">
+			<button type="button" class="chip" aria-pressed={status === 'ok'} onclick={() => statusSetzen('ok')} disabled={!starter}>Gefahren</button>
+			<button type="button" class="chip" aria-pressed={status === 'dns'} onclick={() => statusSetzen('dns')} disabled={!starter}><Ban size={15} /> DNS – nicht gestartet</button>
+			<button type="button" class="chip" aria-pressed={status === 'dsq'} onclick={() => statusSetzen('dsq')} disabled={!starter}><Ban size={15} /> DSQ – disqualifiziert</button>
+		</div>
+
+		{#if status === 'ok'}
+			<div class="grid grid-cols-2 gap-3.5 md:grid-cols-3">
+				<div class="card flex flex-col gap-2 p-4 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent">
+					<label class="flex justify-between text-sm font-bold tracking-wide text-muted uppercase" for="f1">{s.v.fehler1Name} <span class="normal-case opacity-80">× {s.v.strafe1} s</span></label>
+					<input id="f1" bind:this={fehler1Feld} class="display w-full bg-transparent text-[72px] leading-none tabular outline-none disabled:opacity-40" type="number" min="0" bind:value={fehler1} onkeydown={(e) => weiter(e, fehler2Feld)} disabled={!starter} />
+				</div>
+				<div class="card flex flex-col gap-2 p-4 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent">
+					<label class="flex justify-between text-sm font-bold tracking-wide text-muted uppercase" for="f2">{s.v.fehler2Name} <span class="normal-case opacity-80">× {s.v.strafe2} s</span></label>
+					<input id="f2" bind:this={fehler2Feld} class="display w-full bg-transparent text-[72px] leading-none tabular outline-none disabled:opacity-40" type="number" min="0" bind:value={fehler2} onkeydown={(e) => weiter(e, zeitFeld)} disabled={!starter} />
+				</div>
+				<div class="card col-span-2 flex flex-col gap-2 p-4 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent md:col-span-1 {zeit === undefined ? 'border-danger' : ''}">
+					<label class="flex justify-between text-sm font-bold tracking-wide text-muted uppercase" for="zeit">Zeit <span class="opacity-80">{importId ? `Zeitmessung #${importId}` : 'Sekunden'}</span></label>
 					<input
-						id="nummer"
-						bind:this={nummerFeld}
-						class="input py-3 text-center text-3xl font-bold tabular"
-						inputmode="numeric"
+						id="zeit"
+						bind:this={zeitFeld}
+						class="display w-full bg-transparent text-[72px] leading-none tabular outline-none placeholder:text-muted/40 disabled:opacity-40"
+						inputmode="decimal"
 						autocomplete="off"
-						bind:value={nummerText}
-						oninput={() => formularLaden(starter)}
-						onkeydown={nummerBestaetigen}
-					/>
-					<p class="mt-1 text-center text-xs font-semibold text-accent-strong">{LAUF_NAMEN[lauf]}</p>
-				</div>
-				<div class="flex min-h-24 items-center rounded-xl border border-dashed border-line px-5 py-3">
-					{#if starter}
-						{@const klasse = s.klasseVon(starter)}
-						<div class="min-w-0">
-							<p class="truncate text-xl font-bold">{anzeigeName(starter)}</p>
-							<p class="mt-0.5 text-sm text-muted">{[klasse?.name, starter.verein].filter(Boolean).join(' · ')}</p>
-							<div class="mt-1.5 flex flex-wrap gap-1.5">
-								{#if starter.rookieJahr !== null && starter.rookieJahr === s.jahr}<span class="badge bg-info-soft text-info">Rookie</span>{/if}
-								{#if starter.ausserWertung}<span class="badge bg-warn-soft text-warn">außer Wertung</span>{/if}
-								{#each LAEUFE as nr (nr)}
-									{@const l = starter.laeufe[nr]}
-									<span class="badge {(l?.status ?? 'ok') !== 'ok' ? 'bg-danger-soft text-danger' : laufErfasst(l) ? 'bg-ok-soft text-ok' : 'bg-sunken text-muted'}">
-										{LAUF_KURZ[nr]}: {laufText(l)}
-									</span>
-								{/each}
-							</div>
-						</div>
-					{:else if nummerText.trim()}
-						<p class="flex items-center gap-2 text-sm text-danger"><TriangleAlert size={16} /> Startnummer {nummerText} ist nicht gemeldet.</p>
-					{:else}
-						<p class="text-sm text-muted">Startnummer eingeben und mit ↵ bestätigen – oder rechts einen Start aus der Reihenfolge wählen.</p>
-					{/if}
-				</div>
-			</div>
-
-			<div class="mt-5 flex flex-wrap gap-2" role="group" aria-label="Status">
-				<button type="button" class="chip" aria-pressed={status === 'ok'} onclick={() => statusSetzen('ok')} disabled={!starter}>Gefahren</button>
-				<button type="button" class="chip" aria-pressed={status === 'dns'} onclick={() => statusSetzen('dns')} disabled={!starter}>
-					<Ban size={14} /> DNS – nicht gestartet
-				</button>
-				<button type="button" class="chip" aria-pressed={status === 'dsq'} onclick={() => statusSetzen('dsq')} disabled={!starter}>
-					<Ban size={14} /> DSQ – disqualifiziert
-				</button>
-			</div>
-
-			{#if status === 'ok'}
-				<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1.6fr]">
-					<div>
-						<label class="label" for="f1">{s.v.fehler1Name} <span class="normal-case">(× {s.v.strafe1} s)</span></label>
-						<input id="f1" bind:this={fehler1Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler1} onkeydown={(e) => weiter(e, fehler2Feld)} disabled={!starter} />
-					</div>
-					<div>
-						<label class="label" for="f2">{s.v.fehler2Name} <span class="normal-case">(× {s.v.strafe2} s)</span></label>
-						<input id="f2" bind:this={fehler2Feld} class="input py-3 text-center text-2xl font-semibold tabular" type="number" min="0" bind:value={fehler2} onkeydown={(e) => weiter(e, zeitFeld)} disabled={!starter} />
-					</div>
-					<div class="col-span-2 md:col-span-1">
-						<label class="label" for="zeit">Zeit in Sekunden {#if importId}<span class="normal-case">· Zeitmessung #{importId}</span>{/if}</label>
-						<input
-							id="zeit"
-							bind:this={zeitFeld}
-							class="input py-3 text-center text-2xl font-semibold tabular {zeit === undefined ? 'border-danger' : ''}"
-							inputmode="decimal"
-							autocomplete="off"
-							placeholder="0,00"
-							bind:value={zeitText}
-							oninput={() => (importId = null)}
-							onkeydown={(e) => weiter(e, nachZeit)}
-							disabled={!starter}
-						/>
-					</div>
-				</div>
-			{/if}
-
-			<div class="mt-4 grid gap-4 {istKorrektur ? 'md:grid-cols-2' : ''}">
-				<div>
-					<label class="label" for="kommentar">
-						Kommentar {#if status !== 'ok'}<span class="text-danger normal-case">(Pflicht bei {status.toUpperCase()})</span>{:else}<span class="normal-case">(optional)</span>{/if}
-					</label>
-					<input
-						id="kommentar"
-						bind:this={kommentarFeld}
-						class="input {status !== 'ok' && !kommentar.trim() ? 'border-warn' : ''}"
-						placeholder={status === 'dns' ? 'z. B. Fahrer nicht erschienen' : status === 'dsq' ? 'z. B. Frühstart, Streckenabkürzung' : 'Notiz zum Lauf'}
-						bind:value={kommentar}
-						onkeydown={(e) => weiter(e, nachKommentar)}
+						placeholder="0,00"
+						bind:value={zeitText}
+						oninput={() => (importId = null)}
+						onkeydown={(e) => weiter(e, nachZeit)}
 						disabled={!starter}
 					/>
 				</div>
-				{#if istKorrektur}
-					<div>
-						<label class="label" for="grund">Grund der Änderung <span class="text-danger normal-case">(Pflicht)</span></label>
-						<input
-							id="grund"
-							bind:this={grundFeld}
-							class="input {aenderungsgrund.trim() ? '' : 'border-warn'}"
-							placeholder="z. B. Zeit falsch abgelesen"
-							bind:value={aenderungsgrund}
-							onkeydown={(e) => weiter(e, 'speichern')}
-						/>
-					</div>
-				{/if}
 			</div>
+		{/if}
 
-			<div class="mt-6 flex flex-wrap items-center gap-3">
-				<div class="mr-auto">
-					<p class="text-xs font-semibold tracking-wide text-muted uppercase">Ergebnis {LAUF_NAMEN[lauf]}</p>
-					<p class="text-3xl font-bold tabular">{status !== 'ok' ? status.toUpperCase() : vorschau === null ? '–' : `${formatZeit(vorschau)} s`}</p>
-					{#if vorhandenErfasst}
-						<p class="text-xs text-warn">Bereits erfasst: {laufText(vorhanden)} – Änderungen werden mit Begründung protokolliert.</p>
-					{/if}
-				</div>
-				{#if vorhanden}
-					<button type="button" class="btn" onclick={eingabeLoeschen}><Eraser size={16} /> Lauf löschen</button>
-				{/if}
-				<button type="button" class="btn" onclick={zuruecksetzen}>Abbrechen <kbd class="text-xs opacity-60">Esc</kbd></button>
-				<button type="submit" class="btn btn-primary px-5 py-3" disabled={!starter}><Save size={16} /> Speichern & weiter <kbd class="text-xs opacity-70">↵</kbd></button>
+		<div class="grid gap-3.5 {istKorrektur ? 'md:grid-cols-2' : ''}">
+			<div>
+				<label class="label" for="kommentar">
+					Kommentar {#if status !== 'ok'}<span class="text-danger normal-case">(Pflicht bei {status.toUpperCase()})</span>{:else}<span class="font-semibold normal-case">(optional)</span>{/if}
+				</label>
+				<input
+					id="kommentar"
+					bind:this={kommentarFeld}
+					class="input {status !== 'ok' && !kommentar.trim() ? 'border-warn' : ''}"
+					placeholder={status === 'dns' ? 'z. B. Fahrer nicht erschienen' : status === 'dsq' ? 'z. B. Frühstart, Streckenabkürzung' : 'Notiz zum Lauf'}
+					bind:value={kommentar}
+					onkeydown={(e) => weiter(e, nachKommentar)}
+					disabled={!starter}
+				/>
 			</div>
-		</form>
+			{#if istKorrektur}
+				<div>
+					<label class="label" for="grund">Grund der Änderung <span class="text-danger normal-case">(Pflicht)</span></label>
+					<input
+						id="grund"
+						bind:this={grundFeld}
+						class="input {aenderungsgrund.trim() ? '' : 'border-warn'}"
+						placeholder="z. B. Zeit falsch abgelesen"
+						bind:value={aenderungsgrund}
+						onkeydown={(e) => weiter(e, 'speichern')}
+					/>
+				</div>
+			{/if}
+		</div>
+
+		<div class="card-ink flex flex-wrap items-center gap-5 px-6 py-4">
+			<div class="flex flex-col">
+				<span class="eyebrow text-ink-muted">Ergebnis {LAUF_NAMEN[lauf]}</span>
+				<span class="display text-[60px] leading-none normal-case tabular">{status !== 'ok' ? status.toUpperCase() : vorschau === null ? '–' : `${formatZeit(vorschau)} s`}</span>
+			</div>
+			{#if vorhandenErfasst}
+				<p class="max-w-64 text-sm text-orange-300">Bereits erfasst: {laufText(vorhanden)}. Änderungen werden mit Begründung protokolliert.</p>
+			{/if}
+			<div class="ml-auto flex flex-wrap gap-2.5">
+				{#if vorhanden}
+					<button type="button" class="btn border-ink-line bg-transparent text-on-ink hover:bg-white/10" onclick={eingabeLoeschen}><Eraser size={16} /> Lauf löschen</button>
+				{/if}
+				<button type="button" class="btn border-ink-line bg-transparent text-on-ink hover:bg-white/10" onclick={zuruecksetzen}>Abbrechen <kbd class="text-xs opacity-60">Esc</kbd></button>
+				<button type="submit" class="btn btn-primary btn-lg" disabled={!starter}>Speichern ↵</button>
+			</div>
+		</div>
 
 		{#if letzte.length}
 			<section class="card overflow-hidden">
-				<h2 class="border-b border-line px-5 py-3 text-sm font-semibold">Zuletzt erfasst</h2>
-				<ul class="divide-y divide-line text-sm">
+				<h2 class="section-title border-b border-line px-5 py-3">Zuletzt erfasst</h2>
+				<ul class="divide-y divide-line">
 					{#each letzte as l (l.startId + '-' + l.lauf)}
 						{@const st = s.starter.find((x) => x.id === l.startId)}
 						{#if st}
 							<li>
-								<button class="flex w-full items-center gap-4 px-5 py-2 text-left hover:bg-sunken" onclick={() => platzLaden({ starter: st, lauf: l.lauf })}>
-									<span class="w-12 font-bold tabular">{st.startnummer}</span>
-									<span class="flex-1">{anzeigeName(st)}</span>
-									<span class="text-muted">{LAUF_KURZ[l.lauf]}</span>
-									<span class="w-24 text-right font-semibold tabular">{laufText(st.laeufe[l.lauf])}</span>
+								<button type="button" class="flex w-full items-center gap-4 px-5 py-2.5 text-left hover:bg-sunken" onclick={() => platzLaden({ starter: st, lauf: l.lauf })}>
+									<span class="display w-12 text-2xl tabular">{st.startnummer}</span>
+									<span class="flex-1 font-semibold">{anzeigeName(st)}</span>
+									<span class="text-sm text-muted">{LAUF_NAMEN[l.lauf]}</span>
+									<span class="display w-24 text-right text-2xl tabular">{laufText(st.laeufe[l.lauf])}</span>
 								</button>
 							</li>
 						{/if}
@@ -460,65 +482,67 @@
 				</ul>
 			</section>
 		{/if}
-	</div>
+	</form>
 
-	<aside class="flex flex-col gap-6">
-		<section class="card overflow-hidden">
-			<h2 class="flex items-center gap-2 border-b border-line px-4 py-3 text-sm font-semibold"><ListOrdered size={16} /> Als Nächstes</h2>
-			{#if alsNaechstes.length === 0}
-				<p class="px-4 py-3 text-sm text-ok">Keine weiteren offenen Starts.</p>
-			{:else}
-				<ul class="divide-y divide-line text-sm">
-					{#each alsNaechstes as p (p.starter.id + '-' + p.lauf)}
-						<li>
-							<button class="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-sunken" onclick={() => platzLaden(p)}>
-								<span class="w-10 font-bold tabular">{p.starter.startnummer}</span>
-								<span class="min-w-0 flex-1 truncate">{anzeigeName(p.starter)}</span>
-								<span class="badge {p.lauf === 0 ? 'bg-sunken text-muted' : 'bg-accent-soft text-accent-strong'}">{LAUF_KURZ[p.lauf]}</span>
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-			<p class="border-t border-line px-4 py-2 text-[11px] text-muted">Reihenfolge je Klasse: zwei Fahrer Training und Wertung 1, danach alle Wertung 2.</p>
-		</section>
+	<aside class="flex flex-col gap-3.5">
+		<div class="flex items-center justify-between">
+			<h2 class="section-title flex items-center gap-2"><ListOrdered size={20} /> Als Nächstes</h2>
+			{#if starter}<span class="text-sm text-muted">{s.klasseVon(starter)?.name}</span>{/if}
+		</div>
+		{#if alsNaechstes.length === 0}
+			<p class="card px-4 py-3 text-ok">Keine weiteren offenen Starts.</p>
+		{:else}
+			<ul class="flex flex-col gap-2">
+				{#each alsNaechstes.slice(0, 6) as p (p.starter.id + '-' + p.lauf)}
+					<li>
+						<button class="card flex w-full items-center gap-3.5 px-3.5 py-2.5 text-left hover:border-accent" onclick={() => platzLaden(p)}>
+							<span class="display flex size-11 shrink-0 items-center justify-center rounded-lg bg-sunken text-2xl tabular">{p.starter.startnummer}</span>
+							<span class="flex min-w-0 flex-1 flex-col">
+								<span class="truncate font-bold">{p.starter.vorname} {p.starter.nachname}</span>
+								<span class="truncate text-[13px] text-muted">{p.starter.verein || s.klasseVon(p.starter)?.name}</span>
+							</span>
+							<span class="text-[13px] font-semibold {p.lauf === 0 ? 'text-muted' : 'text-accent'}">{LAUF_NAMEN[p.lauf]}</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		<p class="text-xs text-muted">Reihenfolge je Klasse: zwei Fahrer Training und Wertungslauf 1, danach alle Wertungslauf 2.</p>
 
-		<section class="card overflow-hidden">
-			<header class="flex items-center justify-between border-b border-line px-4 py-3">
-				<h2 class="flex items-center gap-2 text-sm font-semibold"><FileClock size={16} /> Zeitmessung</h2>
+		<section class="mt-2 overflow-hidden rounded-[14px] border border-orange-300 bg-accent-soft">
+			<header class="flex items-center justify-between px-4 pt-3">
+				<h2 class="eyebrow flex items-center gap-1.5 text-accent-strong"><FileClock size={15} /> Zeitmessung</h2>
 				{#if zeitmessung.konfiguriert || !istDesktop()}
-					<button class="btn btn-sm" onclick={() => (istDesktop() ? zeitmessung.einlesen() : zeitmessung.dateiWaehlen())}>
+					<button class="btn btn-sm border-transparent bg-transparent hover:bg-surface/60" onclick={() => (istDesktop() ? zeitmessung.einlesen() : zeitmessung.dateiWaehlen())}>
 						<RefreshCw size={14} />
 						{istDesktop() ? 'Neu einlesen' : 'Datei laden'}
 					</button>
 				{/if}
 			</header>
 			{#if !zeitmessung.konfiguriert && istDesktop()}
-				<p class="px-4 py-3 text-sm text-muted">
-					Keine Zeitmessung eingerichtet. In den <a class="text-accent-strong underline" href="/veranstaltung/{s.id}/einstellungen">Einstellungen</a> kann eine CSV- oder Excel-Datei der Zeitmessanlage hinterlegt werden.
+				<p class="px-4 pt-1 pb-4 text-sm">
+					Keine Zeitmessung eingerichtet. In den <a class="font-semibold text-accent-strong underline" href="/veranstaltung/{s.id}/einstellungen">Einstellungen</a> kann eine CSV- oder Excel-Datei der Zeitmessanlage hinterlegt werden.
 				</p>
 			{:else}
-				<div class="px-4 py-2 text-xs text-muted">
-					{#if zeitmessung.fehler}
-						<span class="text-danger">{zeitmessung.fehler}</span>
-					{:else if zeitmessung.stand}
-						{zeitmessung.dateiname} · {zeitmessung.zeiten.length} Zeiten · Stand {zeitmessung.stand.toLocaleTimeString('de-DE')}
-						{#if istDesktop()}<span class="badge ml-1 bg-ok-soft text-ok">live</span>{/if}
-					{:else}
-						Noch nicht eingelesen.
-					{/if}
+				<div class="flex items-center gap-3 px-4 pt-1 pb-3">
+					<div class="flex min-w-0 flex-1 flex-col">
+						<span class="display text-[30px] leading-tight tabular">{naechsteFreieZeit ? formatZeit(naechsteFreieZeit.zeit) : '–'}</span>
+						<span class="truncate text-xs text-muted">
+							{#if zeitmessung.fehler}<span class="text-danger">{zeitmessung.fehler}</span>
+							{:else if zeitmessung.stand}{zeitmessung.dateiname} · Stand {zeitmessung.stand.toLocaleTimeString('de-DE')}{istDesktop() ? ' · live' : ''}
+							{:else}Noch nicht eingelesen.{/if}
+						</span>
+					</div>
+					<button class="btn btn-ink shrink-0" onclick={() => zeitUebernehmen(naechsteFreieZeit)} disabled={!naechsteFreieZeit}>Übernehmen <kbd class="text-xs opacity-70">Strg+T</kbd></button>
 				</div>
 				{#if zeitmessung.zeiten.length}
-					<button class="btn btn-primary btn-sm mx-4 mb-2 w-[calc(100%-2rem)]" onclick={() => zeitUebernehmen(naechsteFreieZeit)} disabled={!naechsteFreieZeit}>
-						Nächste freie Zeit übernehmen <kbd class="text-[10px] opacity-70">Strg+T</kbd>
-					</button>
-					<ul class="max-h-80 divide-y divide-line overflow-y-auto border-t border-line text-sm">
+					<ul class="max-h-72 divide-y divide-line overflow-y-auto border-t border-orange-200 bg-surface">
 						{#each [...zeitmessung.zeiten].reverse().slice(0, 50) as z (z.zeile)}
 							{@const belegt = zugeordnet.get(z.id)}
 							<li>
 								<button class="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-sunken {belegt ? 'opacity-55' : ''}" onclick={() => zeitUebernehmen(z)}>
 									<span class="w-14 font-mono text-xs text-muted">#{z.id}</span>
-									<span class="flex-1 font-semibold tabular">{formatZeit(z.zeit)}</span>
+									<span class="display flex-1 text-xl tabular">{formatZeit(z.zeit)}</span>
 									{#if belegt}<span class="text-xs text-muted">Nr. {belegt.starter.startnummer} · {LAUF_KURZ[belegt.lauf]}</span>{:else}<span class="badge bg-accent-soft text-accent-strong">frei</span>{/if}
 								</button>
 							</li>

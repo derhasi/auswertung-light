@@ -54,7 +54,7 @@
 	<Search size={18} class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted" />
 	<input
 		bind:this={eingabe}
-		class="input py-3 pl-11 text-base"
+		class="input border-2 py-3 pl-11 text-[17px] focus:ring-0"
 		placeholder="Fahrer suchen: Name, Lizenz oder Verein …"
 		bind:value={text}
 		oninput={() => {
@@ -74,13 +74,13 @@
 			{#each treffer as f, i (f.id)}
 				<li role="option" aria-selected={i === markiert}>
 					<button
-						class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm {i === markiert ? 'bg-accent-soft' : 'hover:bg-sunken'}"
+						class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[15px] {i === markiert ? 'bg-accent-soft' : 'hover:bg-sunken'}"
 						onmousedown={(e) => e.preventDefault()}
 						onclick={() => waehlen(f)}
 						onmouseenter={() => (markiert = i)}
 					>
-						<span class="w-16 font-mono text-xs text-muted">{f.lizenz}</span>
-						<span class="flex-1 font-medium">{f.nachname}, {f.vorname}</span>
+						<span class="w-16 text-sm text-muted tabular">{f.lizenz}</span>
+						<span class="flex-1 font-bold">{f.nachname}, {f.vorname}</span>
 						<span class="text-muted">{f.verein}</span>
 						<span class="badge bg-sunken text-muted">{f.klasse || '–'}</span>
 						{#if gemeldet.has(f.lizenz)}<span class="badge bg-warn-soft text-warn">bereits gemeldet</span>{/if}

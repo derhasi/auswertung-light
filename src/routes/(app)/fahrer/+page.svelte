@@ -126,13 +126,13 @@
 	{#snippet aktionen()}
 		<button class="btn" onclick={importieren}><FileUp size={16} /> ZP-Fahrerliste importieren</button>
 		<button class="btn" onclick={exportieren} disabled={!fahrer.length}><FileDown size={16} /> Exportieren</button>
-		<button class="btn btn-primary" onclick={() => oeffnen()}><Plus size={16} /> Fahrer anlegen</button>
+		<button class="btn btn-primary btn-lg" onclick={() => oeffnen()}><Plus size={20} /> Neuer Fahrer</button>
 	{/snippet}
 </Seitenkopf>
 
-<div class="px-8 pb-10">
-	<div class="mb-4 flex flex-wrap items-center gap-3">
-		<div class="relative w-80 max-w-full">
+<div class="px-7 py-6">
+	<div class="card mb-0 flex flex-wrap items-center gap-3 rounded-b-none border-b-0 px-4 py-3.5">
+		<div class="relative w-96 max-w-full">
 			<Search size={16} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
 			<input class="input pl-9" type="search" placeholder="Name, Lizenz, Verein oder Ort suchen" bind:value={suche} />
 		</div>
@@ -140,7 +140,7 @@
 			<option value="">Alle Klassen</option>
 			{#each klassen as k (k)}<option value={k}>{k}</option>{/each}
 		</select>
-		<label class="ml-auto flex items-center gap-2 text-sm text-muted">
+		<label class="ml-auto flex items-center gap-2 text-[15px] font-semibold text-muted">
 			Sortieren nach
 			<select class="input w-auto" bind:value={sortierung}>
 				<option value="name">Name</option>
@@ -152,43 +152,43 @@
 	</div>
 
 	{#if fahrer.length === 0}
-		<div class="card p-8 text-center text-sm text-muted">
+		<div class="card rounded-t-none p-10 text-center text-muted">
 			<p>Noch keine Fahrer vorhanden.</p>
 			<p class="mt-1">
 				Importiere die CSV-Fahrerliste von zugspitzpokal.de (Spalten: ID, Klasse, Nachname, Vorname, Rookie, PLZ, Wohnort, Verein, Geburtsdatum).
 			</p>
 		</div>
 	{:else}
-		<div class="card overflow-hidden">
-			<table class="w-full text-sm">
-				<thead class="bg-sunken text-left text-xs tracking-wide text-muted uppercase">
+		<div class="card overflow-hidden rounded-t-none">
+			<table class="w-full text-[15px]">
+				<thead class="border-y-2 border-t-line border-b-fg text-left text-[13px] tracking-wider text-muted uppercase">
 					<tr>
-						<th class="px-4 py-2.5 font-semibold">Lizenz</th>
-						<th class="px-4 py-2.5 font-semibold">Name</th>
-						<th class="px-4 py-2.5 font-semibold">Klasse</th>
-						<th class="px-4 py-2.5 font-semibold">Verein</th>
-						<th class="px-4 py-2.5 font-semibold">Wohnort</th>
-						<th class="px-4 py-2.5 font-semibold">Geburtsdatum</th>
-						<th class="px-4 py-2.5 font-semibold">Starts</th>
+						<th class="px-4 py-2.5 font-bold">Lizenz</th>
+						<th class="px-4 py-2.5 font-bold">Name</th>
+						<th class="px-4 py-2.5 font-bold">Kl.</th>
+						<th class="px-4 py-2.5 font-bold">Verein</th>
+						<th class="px-4 py-2.5 font-bold">Wohnort</th>
+						<th class="px-4 py-2.5 font-bold">Geb.-Datum</th>
+						<th class="px-4 py-2.5 font-bold text-right">Starts</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each gefiltert.slice(0, 500) as f (f.id)}
-						<tr class="cursor-pointer border-t border-line hover:bg-sunken/60" onclick={() => oeffnen(f)}>
-							<td class="px-4 py-2 font-mono text-xs">
+						<tr class="cursor-pointer border-t border-line hover:bg-accent-soft" onclick={() => oeffnen(f)}>
+							<td class="px-4 py-2.5 text-sm text-muted tabular">
 								{f.lizenz}
 								{#if !lizenzGueltig(f.lizenz)}<span class="badge ml-1 bg-warn-soft text-warn" title="Lizenz enthält unzulässige Zeichen (erlaubt: Buchstaben, Ziffern, - / _)"><TriangleAlert size={11} /></span>{/if}
 							</td>
-							<td class="px-4 py-2 font-medium">
+							<td class="px-4 py-2.5 font-bold">
 								{f.nachname}, {f.vorname}
-								{#if f.rookieJahr}<span class="badge ml-1 bg-info-soft text-info">Rookie {f.rookieJahr}</span>{/if}
+								{#if f.rookieJahr}<span class="badge ml-1 bg-accent-soft text-accent-strong">Rookie {f.rookieJahr}</span>{/if}
 							</td>
-							<td class="px-4 py-2">{f.klasse}</td>
-							<td class="px-4 py-2">{f.verein}</td>
-							<td class="px-4 py-2 text-muted">{f.plz} {f.ort}</td>
-							<td class="px-4 py-2 text-muted tabular">{formatDatum(f.geburtsdatum)}</td>
-							<td class="px-4 py-2">
-								{#if starts.get(f.id)?.length}<span class="badge bg-ok-soft text-ok">{starts.get(f.id)?.length}</span>{/if}
+							<td class="display px-4 py-2.5 text-[22px] leading-none">{f.klasse}</td>
+							<td class="px-4 py-2.5">{f.verein}</td>
+							<td class="px-4 py-2.5 text-muted">{f.plz} {f.ort}</td>
+							<td class="px-4 py-2.5 text-muted tabular">{formatDatum(f.geburtsdatum)}</td>
+							<td class="px-4 py-2.5 text-right font-bold">
+								{#if starts.get(f.id)?.length}<span class="tabular">{starts.get(f.id)?.length}</span>{/if}
 							</td>
 						</tr>
 					{/each}

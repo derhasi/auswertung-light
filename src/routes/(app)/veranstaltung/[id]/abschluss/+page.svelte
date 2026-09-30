@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Award, ClipboardList, FileJson, FileSpreadsheet, Trophy, Upload, Users } from '@lucide/svelte';
+	import { Award, ClipboardList, FileJson, FileSpreadsheet, Printer, Trophy, Users } from '@lucide/svelte';
+	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
 	import { repo } from '$lib/db';
 	import { kodiereWindows1252, stringifyCsv } from '$lib/domain/csv';
 	import { LAUF_KURZ, WERTUNGSLAEUFE } from '$lib/domain/typen';
@@ -75,53 +76,57 @@
 	}
 </script>
 
-<div class="grid gap-8 px-8 py-6">
-	<section>
-		<h2 class="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">Drucken</h2>
-		<div class="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+<Seitenkopf titel="Drucken & Export" untertitel="Aushänge, Urkunden und die Meldung an den Zugspitzpokal" />
+
+<div class="grid gap-6 px-7 py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+	<section class="flex flex-col gap-3">
+		<div class="grid gap-4 md:grid-cols-2">
 			{#each druckstuecke as d (d.dok)}
 				{@const Icon = d.icon}
-				<a class="card flex flex-col gap-2 p-5 hover:shadow-md" href="/druck/{s.id}?dok={d.dok}">
-					<Icon class="text-accent" />
-					<p class="font-semibold">{d.titel}</p>
-					<p class="text-sm text-muted">{d.text.replace('{n}', String(s.v.urkundenPlaetze))}</p>
-				</a>
+				<div class="card flex flex-col gap-3 p-5">
+					<div class="flex items-center gap-3.5">
+						<span class="flex size-13 shrink-0 items-center justify-center rounded-[10px] bg-ink text-on-ink"><Icon size={24} /></span>
+						<h2 class="display text-[30px] leading-none">{d.titel}</h2>
+					</div>
+					<p class="text-base text-muted">{d.text.replace('{n}', String(s.v.urkundenPlaetze))}</p>
+					<a class="btn btn-primary btn-lg mt-auto self-start" href="/druck/{s.id}?dok={d.dok}"><Printer size={20} /> Drucken / PDF</a>
+				</div>
 			{/each}
 		</div>
-		<p class="mt-2 text-xs text-muted">Im Druckdialog kann statt eines Druckers auch „Als PDF speichern" gewählt werden.</p>
+		<p class="text-sm text-muted">Im Druckdialog kann statt eines Druckers auch „Als PDF speichern“ gewählt werden.</p>
 	</section>
 
-	<section class="card p-6">
-		<div class="flex flex-wrap items-start gap-6">
-			<div class="min-w-64 flex-1">
-				<h2 class="flex items-center gap-2 font-semibold"><Upload size={18} class="text-accent" /> ZP-Export für zugspitzpokal.de</h2>
-				<p class="mt-1 text-sm text-muted">
-					Erzeugt die Datei <code>zp_output.csv</code> für den Ergebnis- und Statistikdienst (gleiches Format wie das bisherige Blatt „zp_output").
-				</p>
-				{#if unvollstaendig.length}
-					<p class="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
-						{unvollstaendig.length} Fahrer ohne vollständige Wertungsläufe: {unvollstaendig.map((z) => z.starter.startnummer).join(', ')}
-					</p>
-				{/if}
-				{#if ohneLizenz.length}
-					<p class="mt-2 rounded-lg bg-info-soft px-3 py-2 text-sm text-info">{ohneLizenz.length} Fahrer ohne Lizenznummer.</p>
-				{/if}
-			</div>
-			<div class="flex w-72 flex-col gap-3">
+	<aside class="flex flex-col gap-4">
+		<section class="card overflow-hidden">
+			<h2 class="section-title bg-ink px-5 py-3.5 text-2xl text-on-ink">ZP-Export</h2>
+			<div class="flex flex-col gap-3 p-5">
 				<div>
 					<label class="label" for="zp-id">ZP-Veranstaltungs-ID</label>
 					<input id="zp-id" class="input font-mono" value={s.v.zpId} onchange={(e) => s.aktualisieren({ zpId: e.currentTarget.value.trim() })} />
 				</div>
-				<button class="btn btn-primary" onclick={zpSpeichern}><FileSpreadsheet size={16} /> ZP-Datei speichern</button>
+				<p class="text-sm text-muted">Erzeugt <code>zp_output.csv</code> für zugspitzpokal.de – gleiches Format wie das bisherige Blatt „zp_output“.</p>
+				{#if unvollstaendig.length}
+					<p class="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+						{unvollstaendig.length} Fahrer ohne vollständige Wertungsläufe: {unvollstaendig.map((z) => z.starter.startnummer).join(', ')}
+					</p>
+				{/if}
+				{#if ohneLizenz.length}
+					<p class="rounded-lg bg-info-soft px-3 py-2 text-sm text-info">{ohneLizenz.length} Fahrer ohne Lizenznummer.</p>
+				{/if}
+				<button class="btn btn-primary btn-lg" onclick={zpSpeichern}>zp_output.csv speichern</button>
 			</div>
-		</div>
-	</section>
+		</section>
 
-	<section>
-		<h2 class="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">Weitere Exporte</h2>
-		<div class="flex flex-wrap gap-3">
-			<button class="btn" onclick={ergebnisCsv}><FileSpreadsheet size={16} /> Ergebnisse als CSV (Excel)</button>
-			<button class="btn" onclick={sichern}><FileJson size={16} /> Veranstaltung sichern (JSON)</button>
-		</div>
-	</section>
+		<section class="card flex flex-col overflow-hidden">
+			<h2 class="eyebrow px-5 pt-4 pb-2 text-muted">Weitere Exporte</h2>
+			<button class="flex items-start gap-3 border-t border-line px-5 py-3 text-left hover:bg-sunken" onclick={ergebnisCsv}>
+				<FileSpreadsheet size={20} class="mt-0.5 text-accent" />
+				<span class="flex flex-col"><span class="font-bold">Ergebnisse als CSV</span><span class="text-sm text-muted">Für Excel, mit Status und Kommentar</span></span>
+			</button>
+			<button class="flex items-start gap-3 border-t border-line px-5 py-3 text-left hover:bg-sunken" onclick={sichern}>
+				<FileJson size={20} class="mt-0.5 text-accent" />
+				<span class="flex flex-col"><span class="font-bold">Veranstaltung sichern</span><span class="text-sm text-muted">JSON-Datei, auf der Startseite wieder einlesbar</span></span>
+			</button>
+		</section>
+	</aside>
 </div>

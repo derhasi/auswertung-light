@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Seitenkopf from '$lib/components/Seitenkopf.svelte';
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import { ArrowDown, ArrowUp, FileSearch, ImagePlus, Plus, Save, Trash2, X } from '@lucide/svelte';
@@ -95,9 +96,11 @@
 	}
 </script>
 
-<div class="grid max-w-5xl gap-6 px-8 py-6">
+<Seitenkopf titel="Einstellungen" untertitel="Gelten nur für diese Veranstaltung und werden für neue Veranstaltungen übernommen" />
+
+<div class="grid items-start gap-6 px-7 py-6 xl:grid-cols-2">
 	<form class="card p-6" onsubmit={(e) => speichern(e, stamm)}>
-		<h2 class="mb-4 font-semibold">Veranstaltung</h2>
+		<h2 class="section-title mb-4 text-2xl">Veranstaltung</h2>
 		<div class="grid gap-4 md:grid-cols-2">
 			<div class="md:col-span-2"><label class="label" for="e-name">Bezeichnung</label><input id="e-name" class="input" bind:value={stamm.name} required /></div>
 			<div><label class="label" for="e-datum">Datum</label><input id="e-datum" class="input" type="date" bind:value={stamm.datum} required /></div>
@@ -110,7 +113,7 @@
 	</form>
 
 	<form class="card p-6" onsubmit={(e) => speichern(e, regeln)}>
-		<h2 class="mb-4 font-semibold">Wertung</h2>
+		<h2 class="section-title mb-4 text-2xl">Wertung</h2>
 		<div class="grid gap-4 md:grid-cols-4">
 			<div><label class="label" for="r-f1">Fehlerart 1</label><input id="r-f1" class="input" bind:value={regeln.fehler1Name} required /></div>
 			<div><label class="label" for="r-s1">Strafsekunden</label><input id="r-s1" class="input" type="number" min="0" step="0.01" bind:value={regeln.strafe1} required /></div>
@@ -128,9 +131,9 @@
 		<div class="mt-4 flex justify-end"><button class="btn btn-primary"><Save size={16} /> Speichern</button></div>
 	</form>
 
-	<section class="card p-6">
+	<section class="card p-6 xl:col-span-2">
 		<div class="mb-4 flex items-center justify-between">
-			<h2 class="font-semibold">Klassen</h2>
+			<h2 class="section-title text-2xl">Klassen</h2>
 			<button class="btn btn-sm" onclick={() => s.klasseAnlegen().catch((e) => ui.fehler(e))}><Plus size={14} /> Klasse hinzufügen</button>
 		</div>
 		<ul class="divide-y divide-line rounded-lg border border-line">
@@ -155,8 +158,8 @@
 		<p class="mt-2 text-xs text-muted">Beim Nennen wird die Klasse aus der Fahrerdatenbank über das Kürzel zugeordnet (z. B. „K1" → Klasse 1).</p>
 	</section>
 
-	<section class="card p-6">
-		<h2 class="mb-4 font-semibold">Logos für Ausdrucke</h2>
+	<section class="card p-6 xl:col-span-2">
+		<h2 class="section-title mb-4 text-2xl">Logos für Ausdrucke</h2>
 		<div class="grid gap-6 md:grid-cols-2">
 			{#each [['logoLinks', 'Logo links'], ['logoRechts', 'Logo rechts']] as const as [feld, titel] (feld)}
 				<div>
@@ -173,8 +176,8 @@
 		</div>
 	</section>
 
-	<form class="card p-6" onsubmit={(e) => speichern(e, { zeitquelle })}>
-		<h2 class="font-semibold">Zeitmessung</h2>
+	<form class="card p-6 xl:col-span-2" onsubmit={(e) => speichern(e, { zeitquelle })}>
+		<h2 class="section-title text-2xl">Zeitmessung</h2>
 		<p class="mt-1 mb-4 text-sm text-muted">
 			Die Zeiten können aus einer CSV- oder Excel-Datei der Zeitmessanlage übernommen werden. Die Desktop-App beobachtet die Datei und zeigt neue Zeiten in der Erfassung sofort an.
 		</p>
@@ -213,8 +216,8 @@
 		</div>
 	</form>
 
-	<section class="card border-danger/40 p-6">
-		<h2 class="font-semibold text-danger">Veranstaltung löschen</h2>
+	<section class="card border-danger/40 p-6 xl:col-span-2">
+		<h2 class="section-title text-2xl text-danger">Veranstaltung löschen</h2>
 		<p class="mt-1 text-sm text-muted">Löscht die Veranstaltung mit allen Nennungen und Ergebnissen. Die Fahrerdatenbank bleibt erhalten.</p>
 		<button class="btn btn-danger mt-4" onclick={veranstaltungLoeschen}><Trash2 size={16} /> Veranstaltung löschen</button>
 	</section>

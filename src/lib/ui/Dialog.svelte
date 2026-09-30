@@ -23,7 +23,7 @@
 
 <dialog
 	bind:this={dialog}
-	class="m-auto w-[calc(100%-2rem)] {breite} rounded-2xl border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+	class="m-auto w-[calc(100%-2rem)] {breite} overflow-hidden rounded-[14px] border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
 	onclose={() => offen && onschliessen()}
 	oncancel={(e) => {
 		e.preventDefault();
@@ -31,9 +31,9 @@
 	}}
 >
 	{#if offen}
-		<div class="flex items-center justify-between border-b border-line px-5 py-3.5">
-			<h2 class="text-base font-semibold">{titel}</h2>
-			<button class="btn btn-ghost btn-icon -mr-2" onclick={onschliessen} aria-label="Schließen"><X size={18} /></button>
+		<div class="flex items-center justify-between bg-ink px-5 py-3.5 text-on-ink">
+			<h2 class="section-title text-2xl">{titel}</h2>
+			<button class="btn btn-ghost btn-icon -mr-2 text-on-ink hover:bg-white/10" onclick={onschliessen} aria-label="Schließen"><X size={20} /></button>
 		</div>
 		<div class="max-h-[70vh] overflow-y-auto px-5 py-4">
 			{@render children()}
